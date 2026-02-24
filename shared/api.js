@@ -7,6 +7,56 @@
 'use strict';
 
 const API = (() => {
+  // ── Auth ──────────────────────────────────
+
+  const AuthAPI = {
+    /**
+     * Log in with an email address.
+     * Delegates to the Auth module if available.
+     * @param {string} email
+     * @returns {Object|null} user object or null
+     */
+    login(email) {
+      if (typeof Auth !== 'undefined') return Auth.login(email);
+      return null;
+    },
+
+    /**
+     * Log in as a guest.
+     * @param {'customer'|'driver'} type
+     * @returns {Object|null}
+     */
+    loginAsGuest(type) {
+      if (typeof Auth !== 'undefined') return Auth.loginAsGuest(type);
+      return null;
+    },
+
+    /**
+     * Log out and redirect to login page.
+     */
+    logout() {
+      if (typeof Auth !== 'undefined') Auth.logout();
+    },
+
+    /**
+     * Get the current logged-in user from localStorage.
+     * @returns {Object|null}
+     */
+    getCurrentUser() {
+      return Storage.getCurrentUser();
+    },
+
+    /**
+     * Validate an email address for RideFlow domains.
+     * @param {string} email
+     * @returns {{ valid: boolean, type?: string, error?: string }}
+     */
+    validateEmail(email) {
+      if (typeof Auth !== 'undefined') return Auth.validateEmail(email);
+      return { valid: false, error: 'Auth module not loaded.' };
+    },
+  };
+
   // ── Orders ────────────────────────────────
 
   const Orders = {
@@ -101,6 +151,20 @@ const API = (() => {
     cancel(orderId) {
       this.updateStatus(orderId, 'cancelled');
     },
+
+    /**
+     * Get mock drivers filtered by service type.
+     * @param {string} [serviceType]
+     * @returns {Array}
+     */
+    getAvailableDrivers(serviceType) {
+      const drivers = [
+        { id: 'ahmad@driver.mail',  name: 'Ahmad',  email: 'ahmad@driver.mail',  rating: 4.92, services: ['ride', 'food'],     vehicle: 'Motorcycle', eta: 4 },
+        { id: 'siti@driver.mail',   name: 'Siti',   email: 'siti@driver.mail',   rating: 4.88, services: ['package', 'food'],  vehicle: 'Car',        eta: 6 },
+        { id: 'budi_d@driver.mail', name: 'Budi',   email: 'budi_d@driver.mail', rating: 4.85, services: ['ride', 'package'],  vehicle: 'Motorcycle', eta: 5 },
+      ];
+      return serviceType ? drivers.filter(d => d.services.includes(serviceType)) : drivers;
+    },
   };
 
   // ── Chat ──────────────────────────────────
@@ -108,25 +172,42 @@ const API = (() => {
   const Chat = {
     /**
      * Send a message (text or image) for an order.
+     * Automatically enriches the message with senderName and senderEmail
+     * from the current auth session if not already provided.
      * @param {string} orderId
      * @param {Object} messageData  - must include sender, type, content
      * @returns {string} message ID
      */
     sendMessage(orderId, messageData) {
+      const user = Storage.getCurrentUser();
       const id = messageData.id || 'msg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
       const msg = {
         ...messageData,
         id,
         orderId,
+        senderName:  messageData.senderName  || (user ? user.name  : 'Guest'),
+        senderEmail: messageData.senderEmail || (user ? user.email : 'guest'),
         timestamp: messageData.timestamp || new Date().toISOString(),
         read:      messageData.read !== undefined ? messageData.read : false,
       };
       Storage.addMessage(orderId, msg);
-      // Increment unread counter for the opposite side
       if (messageData.sender === 'customer') {
         Storage.incrementUnread(orderId);
       }
       return id;
+    },
+
+    /**
+     * Delete all messages for a given order.
+     * @param {string} orderId
+     */
+    deleteChatHistory(orderId) {
+      const chats = Storage.getChats();
+      if (chats[orderId]) {
+        chats[orderId].messages = [];
+        chats[orderId].lastMessageTime = new Date().toISOString();
+        Storage.setChats(chats);
+      }
     },
 
     /**
@@ -288,5 +369,5 @@ const API = (() => {
     },
   };
 
-  return { Orders, Chat, Location, Driver, User };
+  return { Auth: AuthAPI, Orders, Chat, Location, Driver, User };
 })();

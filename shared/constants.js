@@ -63,6 +63,12 @@ const CONSTANTS = {
     CUSTOMER_LOCATION: 'rideflow-customer-location',
     SAVED_LOCATIONS: 'rideflow-saved-locations',
     ORDERS:          'rideflow-orders',
+    CURRENT_USER:    'rideflow-current-user',
+  },
+
+  AUTH: {
+    CUSTOMER_DOMAIN: '@customer.mail',
+    DRIVER_DOMAIN:   '@driver.mail',
   },
 
   PLATFORM_FEE_RATE: 0.20,  // 20% platform commission
