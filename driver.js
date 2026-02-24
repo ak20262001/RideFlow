@@ -11,6 +11,10 @@
 
 const PLATFORM_FEE_RATE = 0.2; // 20% platform commission
 
+// Shared localStorage channel key for cross-tab chat sync
+// (must match the key used in index.html / chat-sync-bridge.js)
+const CHAT_CHANNEL = 'ORD-DEMO';
+
 // =============================================
 // MOCK DATA
 // =============================================
@@ -116,6 +120,7 @@ const state = {
   onlineStartTime: Date.now(),
   msgIdCounter: 10,
   orderStep: 'pickup', // 'pickup' | 'dropoff'
+  pendingImage: null,  // { dataUrl, fileName } waiting to be sent
 };
 
 // =============================================
@@ -341,6 +346,17 @@ function acceptOrder(orderId) {
 
   RideFlowWS.send('order_accepted', { orderId, driverId: DRIVER_INFO.id });
 
+  // Initialize bi-directional chat sync
+  ChatSync.init(CHAT_CHANNEL, (msg) => {
+    // Only show messages from the other side (customer)
+    if (msg.sender === 'driver') return;
+    if (!state.activeOrderId) return;
+    appendSyncedMessage(msg);
+    const count = ChatSync.getUnreadCount(CHAT_CHANNEL);
+    updateUnreadBadge(count);
+    showToast('💬 Customer: ' + (msg.type === 'image' ? '📷 Photo' : msg.content.slice(0, 40)), 3000);
+  });
+
   // Simulate customer sending a message after accepting
   RideFlowWS.simulateCustomerMessage('Terima kasih sudah menerima order saya! 🙏', 4000);
 }
@@ -438,7 +454,10 @@ function completeTrip() {
     document.getElementById('quickRepliesSection').style.display = 'none';
     document.getElementById('chatInputArea').style.display = 'none';
     document.getElementById('activeConvHeader').style.display = 'none';
+    document.getElementById('imgPreviewStrip').style.display = 'none';
+    updateUnreadBadge(0);
     state.messages = [];
+    state.pendingImage = null;
   }, 2000);
 
   appendSystemMessage('Trip completed 🎉 · Thank you!');
@@ -450,6 +469,26 @@ function completeTrip() {
 // =============================================
 // MESSAGING
 // =============================================
+
+/** Convert a ChatSync message object to the local format used by state.messages */
+function _syncMsgToLocal(m) {
+  return {
+    id:       m.id,
+    from:     m.sender,
+    type:     m.type || 'text',
+    text:     m.content,
+    imageUrl: m.imageUrl || null,
+    fileName: m.fileName || null,
+    time:     new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    read:     !!m.read,
+  };
+}
+
+/** Called by ChatSync when a new message arrives from the customer tab */
+function appendSyncedMessage(syncMsg) {
+  const local = _syncMsgToLocal(syncMsg);
+  appendMessage(local);
+}
 
 function activateOrderMessaging(order) {
   // Set conversation header
@@ -464,9 +503,38 @@ function activateOrderMessaging(order) {
   document.getElementById('quickRepliesSection').style.display = 'block';
   document.getElementById('chatInputArea').style.display = 'block';
 
-  // Load initial messages
-  state.messages = [...INITIAL_MESSAGES];
+  // Mark messages as read when chat is open
+  ChatSync.markAllRead(CHAT_CHANNEL);
+  updateUnreadBadge(0);
+
+  // Load persisted messages (from localStorage) first, then fall back to initial mock
+  const persisted = ChatSync.getMessages(CHAT_CHANNEL);
+  if (persisted.length > 0) {
+    state.messages = persisted.map(m => _syncMsgToLocal(m));
+  } else {
+    state.messages = [...INITIAL_MESSAGES];
+    // Persist the initial messages so the customer tab can also see them
+    state.messages.forEach((m, idx) => {
+      if (m.from === 'system') return;
+      ChatSync.sendMessage(CHAT_CHANNEL, {
+        id:        'init-' + m.id,
+        orderId:   CHAT_CHANNEL,
+        sender:    m.from,
+        type:      'text',
+        content:   m.text,
+        timestamp: new Date(Date.now() - (state.messages.length - idx) * 60000).toISOString(),
+        read:      !!m.read,
+      });
+    });
+  }
+
   renderMessages();
+
+  // Attach drag-and-drop to chat input area
+  const inputArea = document.getElementById('chatInputArea');
+  FileHandler.attachDropZone(inputArea, (file) => {
+    _handleImageFile(file);
+  });
 }
 
 function renderMessages() {
@@ -483,10 +551,13 @@ function renderMessages() {
       const isDriver = msg.from === 'driver';
       const el = document.createElement('div');
       el.className = 'msg ' + (isDriver ? 'driver-msg' : 'customer-msg');
+      const bubbleContent = msg.type === 'image' && msg.imageUrl
+        ? FileHandler.renderImageBubble(msg.imageUrl, msg.fileName)
+        : `<div class="msg-bubble">${escapeHtml(msg.text || '')}</div>`;
       el.innerHTML = `
         <div class="msg-avatar ${isDriver ? 'driver' : 'customer'}">${isDriver ? '👨‍✈️' : getActiveCustomerInitials()}</div>
         <div class="msg-content">
-          <div class="msg-bubble">${escapeHtml(msg.text)}</div>
+          ${bubbleContent}
           <div class="msg-time">${msg.time}${isDriver && msg.read ? '<span class="msg-read">✓✓</span>' : ''}</div>
         </div>`;
       container.appendChild(el);
@@ -510,10 +581,14 @@ function appendMessage(msg) {
     const isDriver = msg.from === 'driver';
     const el = document.createElement('div');
     el.className = 'msg ' + (isDriver ? 'driver-msg' : 'customer-msg');
+    el.style.animation = 'fadeUp 0.28s ease';
+    const bubbleContent = msg.type === 'image' && msg.imageUrl
+      ? FileHandler.renderImageBubble(msg.imageUrl, msg.fileName)
+      : `<div class="msg-bubble">${escapeHtml(msg.text || '')}</div>`;
     el.innerHTML = `
       <div class="msg-avatar ${isDriver ? 'driver' : 'customer'}">${isDriver ? '👨‍✈️' : getActiveCustomerInitials()}</div>
       <div class="msg-content">
-        <div class="msg-bubble">${escapeHtml(msg.text)}</div>
+        ${bubbleContent}
         <div class="msg-time">${msg.time}${isDriver && msg.read ? '<span class="msg-read">✓✓</span>' : ''}</div>
       </div>`;
     container.appendChild(el);
@@ -537,21 +612,42 @@ function getActiveCustomerInitials() {
 }
 
 function sendDriverMessage() {
+  // If there's a pending image, send that first
+  if (state.pendingImage) {
+    _sendDriverImage(state.pendingImage.dataUrl, state.pendingImage.fileName);
+    return;
+  }
+
   const input = document.getElementById('driverChatInput');
   const text = input.value.trim();
   if (!text) return;
 
+  const now = getCurrentTime();
   const msg = {
     id: ++state.msgIdCounter,
     from: 'driver',
+    type: 'text',
     text,
-    time: getCurrentTime(),
+    time: now,
     read: false,
   };
 
   appendMessage(msg);
   input.value = '';
   input.style.height = 'auto';
+
+  // Persist to shared storage
+  if (state.activeOrderId) {
+    ChatSync.sendMessage(CHAT_CHANNEL, {
+      id:        'drv-' + msg.id,
+      orderId:   CHAT_CHANNEL,
+      sender:    'driver',
+      type:      'text',
+      content:   text,
+      timestamp: new Date().toISOString(),
+      read:      false,
+    });
+  }
 
   RideFlowWS.send('message', { from: 'driver', text, orderId: state.activeOrderId });
 
@@ -560,6 +656,94 @@ function sendDriverMessage() {
     msg.read = true;
     renderMessages();
   }, 1500);
+}
+
+function _sendDriverImage(dataUrl, fileName) {
+  const now = getCurrentTime();
+  const msg = {
+    id:       ++state.msgIdCounter,
+    from:     'driver',
+    type:     'image',
+    text:     fileName || 'image',
+    imageUrl: dataUrl,
+    fileName: fileName || 'image',
+    time:     now,
+    read:     false,
+  };
+
+  appendMessage(msg);
+
+  // Clear pending image preview
+  state.pendingImage = null;
+  const strip = document.getElementById('imgPreviewStrip');
+  strip.innerHTML = '';
+  strip.style.display = 'none';
+
+  // Persist to shared storage
+  if (state.activeOrderId) {
+    ChatSync.sendMessage(CHAT_CHANNEL, {
+      id:        'drv-img-' + msg.id,
+      orderId:   CHAT_CHANNEL,
+      sender:    'driver',
+      type:      'image',
+      content:   fileName || 'image',
+      imageUrl:  dataUrl,
+      fileName:  fileName || 'image',
+      timestamp: new Date().toISOString(),
+      read:      false,
+    });
+  }
+
+  RideFlowWS.send('message', { from: 'driver', type: 'image', fileName, orderId: state.activeOrderId });
+}
+
+/** Called when user selects an image via the file input */
+function handleDriverImageSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = ''; // Reset so same file can be picked again
+  _handleImageFile(file);
+}
+
+function _handleImageFile(file) {
+  FileHandler.processFile(file)
+    .then(({ dataUrl, fileName }) => {
+      state.pendingImage = { dataUrl, fileName };
+      _showImagePreview(dataUrl, fileName);
+    })
+    .catch((err) => {
+      showToast('⚠️ ' + err.message, 3500);
+    });
+}
+
+function _showImagePreview(dataUrl, fileName) {
+  const safeName = escapeHtml(fileName || 'image');
+  const strip = document.getElementById('imgPreviewStrip');
+  strip.style.display = 'flex';
+  strip.innerHTML = `
+    <div class="img-preview-thumb">
+      <img src="${dataUrl}" alt="preview">
+      <button class="img-preview-cancel" onclick="cancelPendingImage()" title="Remove">✕</button>
+    </div>
+    <span style="font-size:11px;color:var(--text2);">${safeName}<br><span style="color:var(--muted);">Click send ↗</span></span>`;
+}
+
+function cancelPendingImage() {
+  state.pendingImage = null;
+  const strip = document.getElementById('imgPreviewStrip');
+  strip.innerHTML = '';
+  strip.style.display = 'none';
+}
+
+function updateUnreadBadge(count) {
+  const badge = document.getElementById('unreadBadgeHeader');
+  if (!badge) return;
+  if (count > 0) {
+    badge.textContent = count;
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
 }
 
 function sendQuickReply(text) {
@@ -688,6 +872,13 @@ function init() {
 
   // Start online timer
   setInterval(updateOnlineTime, 30000);
+
+  // Initialize Leaflet map
+  MapIntegration.init('liveMap', (statusText) => {
+    updateMapStatus(statusText);
+    const locEl = document.getElementById('locStatusText');
+    if (locEl) locEl.textContent = statusText;
+  });
 
   // Simulate a new order arriving after 12 seconds
   RideFlowWS.simulateIncomingOrder(SIMULATED_NEW_ORDER, 12000);
