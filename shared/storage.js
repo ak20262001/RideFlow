@@ -159,6 +159,31 @@ const Storage = (() => {
     return _safeRemove(key);
   }
 
+  // ── Current user session ──────────────────
+
+  function getCurrentUser() {
+    return _safeGet('rideflow-current-user');
+  }
+
+  function setCurrentUser(user) {
+    return _safeSet('rideflow-current-user', user);
+  }
+
+  function clearCurrentUser() {
+    return _safeRemove('rideflow-current-user');
+  }
+
+  // ── Delete chat messages for an order ─────
+
+  function deleteMessages(orderId) {
+    const chats = getChats();
+    if (chats[orderId]) {
+      chats[orderId].messages = [];
+      chats[orderId].lastMessageTime = new Date().toISOString();
+      setChats(chats);
+    }
+  }
+
   // ── Data migration ────────────────────────
 
   /**
@@ -171,7 +196,7 @@ const Storage = (() => {
 
   return {
     // Chats
-    getChats, setChats, getMessages, addMessage,
+    getChats, setChats, getMessages, addMessage, deleteMessages,
     // Unread
     getUnread, setUnread, incrementUnread, clearUnread, getUnreadCount,
     // Locations
@@ -181,6 +206,8 @@ const Storage = (() => {
     getSavedLocations, setSavedLocations,
     // Orders
     getOrders, setOrders,
+    // Current user session
+    getCurrentUser, setCurrentUser, clearCurrentUser,
     // Generic
     get, set, remove,
     // Migration

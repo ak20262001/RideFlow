@@ -1,107 +1,9 @@
 /* =============================================
    RideFlow — Customer Dashboard Application
-   Consolidated JavaScript with Firebase integration
-   and real-time chat sync
+   localStorage-based auth + real-time chat sync
 ============================================= */
 
-// ─────────────────────────────────────────────
-//  FIREBASE IMPORTS
-// ─────────────────────────────────────────────
-import { initializeApp }                      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword,
-         signInWithEmailAndPassword, signOut,
-         onAuthStateChanged, updateProfile }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, addDoc,
-         updateDoc, deleteDoc, doc, query,
-         where, orderBy, onSnapshot,
-         serverTimestamp }                    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-// ─────────────────────────────────────────────
-//  FIREBASE CONFIG — Replace with your own config
-// ─────────────────────────────────────────────
-const firebaseConfig = {
-  apiKey: "AIzaSyDSVnNtzby_0n0OMQEpRV0Cpye1b371LNs",
-  authDomain: "rideflow-app-a9953.firebaseapp.com",
-  projectId: "rideflow-app-a9953",
-  storageBucket: "rideflow-app-a9953.firebasestorage.app",
-  messagingSenderId: "763385025754",
-  appId: "1:763385025754:web:6a782f197a826c5080c1e3",
-  measurementId: "G-YKS9VLS8GY"
-};
-
-// ─────────────────────────────────────────────
-//  FIREBASE INITIALIZATION
-// ─────────────────────────────────────────────
-let auth, db;
-let FB = false; // Firebase ready flag
-
-try {
-  const app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db   = getFirestore(app);
-  FB   = true;
-  console.log("✅ Firebase connected");
-} catch(e) {
-  console.warn("⚠️ Firebase not configured — running in demo mode:", e.message);
-}
-
-// ─────────────────────────────────────────────
-//  FIREBASE HELPER FUNCTIONS
-// ─────────────────────────────────────────────
-async function fbLogin(email, password) {
-  if (!FB) throw new Error("Firebase not configured");
-  const c = await signInWithEmailAndPassword(auth, email, password);
-  return c.user;
-}
-
-async function fbRegister(email, password, name) {
-  if (!FB) throw new Error("Firebase not configured");
-  const c = await createUserWithEmailAndPassword(auth, email, password);
-  await updateProfile(c.user, { displayName: name });
-  return c.user;
-}
-
-async function fbSignOut() {
-  if (FB) await signOut(auth);
-}
-
-async function fbSaveOrder(orderData) {
-  if (!FB) return 'demo-' + Date.now();
-  const uid = window._currentUser?.uid || 'guest';
-  const ref = await addDoc(collection(db, 'orders'), {
-    ...orderData, uid, timestamp: serverTimestamp(), status: 'searching'
-  });
-  return ref.id;
-}
-
-async function fbUpdateOrder(orderId, status, extra = {}) {
-  if (!FB || !orderId || orderId.startsWith('demo') || orderId.startsWith('local')) return;
-  await updateDoc(doc(db, 'orders', orderId), { status, ...extra });
-}
-
-function fbListenOrders(uid, cb) {
-  if (!FB) { cb([]); return () => {}; }
-  const q = query(collection(db,'orders'), where('uid','==',uid), orderBy('timestamp','desc'));
-  return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
-}
-
-async function fbSaveLoc(locData) {
-  if (!FB) return 'demo-loc-' + Date.now();
-  const uid = window._currentUser?.uid || 'guest';
-  const ref = await addDoc(collection(db,'savedLocations'), { ...locData, uid, createdAt: serverTimestamp() });
-  return ref.id;
-}
-
-async function fbDeleteLoc(locId) {
-  if (!FB || locId.startsWith('demo')) return;
-  await deleteDoc(doc(db, 'savedLocations', locId));
-}
-
-function fbListenLocs(uid, cb) {
-  if (!FB) { cb([]); return () => {}; }
-  const q = query(collection(db,'savedLocations'), where('uid','==',uid));
-  return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
-}
+'use strict';
 
 // ─────────────────────────────────────────────
 //  TIER DATA (Service tiers by vehicle and type)
@@ -167,8 +69,6 @@ const state = {
   currentDriver: null,
   userRating: 0,
   savedLocType: '🏠',
-  unsubOrders: null,
-  unsubSavedLocs: null,
   orders: [],
   savedLocs: [],
   estimatedKm: null,
@@ -178,26 +78,17 @@ const state = {
 const DEMO_ORDER_ID = 'ORD-DEMO';
 
 // ─────────────────────────────────────────────
-//  AUTH STATE LISTENER
+//  ENTRY POINT — Auth check on DOMContentLoaded
 // ─────────────────────────────────────────────
-if (FB) {
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      window._currentUser = {
-        uid: user.uid, email: user.email,
-        name: user.displayName || user.email.split('@')[0],
-        isGuest: false
-      };
-      onUserLoggedIn(window._currentUser);
-    } else {
-      window._currentUser = null;
-      onUserLoggedOut();
-    }
-  });
-} else {
-  // Firebase not configured — go straight to auth gate
-  setTimeout(() => onUserLoggedOut(), 300);
-}
+document.addEventListener('DOMContentLoaded', () => {
+  const user = Auth.getCurrentUser();
+  if (!user || user.type !== 'customer') {
+    window.location.href = '../auth/login.html';
+    return;
+  }
+  window._currentUser = user;
+  onUserLoggedIn(user);
+});
 
 // ─────────────────────────────────────────────
 //  AUTH HANDLERS
@@ -207,41 +98,21 @@ function onUserLoggedIn(user) {
   hideEl('authGate');
   showAppShell();
   updateHeaderUser(user);
-  subscribeToData(user.uid);
+  loadLocalData();
   if (!user.isGuest) {
     addBotMessage(`Welcome back, **${user.name}**! 👋 Where are you headed today?`);
   } else {
     initGuestChat();
   }
-  // Activate chat sync bridge to receive driver messages
   _initChatSyncBridge(user.name || 'customer');
 }
 
-function onUserLoggedOut() {
-  hideEl('loadingScreen');
-  showEl('authGate');
-  hideEl('appShell');
-  showEl('headerAuthBtns');
-  hideEl('headerUser');
-  unsubscribeData();
-}
-
-function subscribeToData(uid) {
-  unsubscribeData();
-  state.unsubOrders = fbListenOrders(uid, (orders) => {
-    state.orders = orders;
-    renderHistory();
-  });
-  state.unsubSavedLocs = fbListenLocs(uid, (locs) => {
-    state.savedLocs = locs;
-    renderSavedLocs();
-    renderSavedPicks();
-  });
-}
-
-function unsubscribeData() {
-  if (state.unsubOrders)    { state.unsubOrders();    state.unsubOrders = null; }
-  if (state.unsubSavedLocs) { state.unsubSavedLocs(); state.unsubSavedLocs = null; }
+function loadLocalData() {
+  state.orders   = Storage.getOrders();
+  state.savedLocs = Storage.getSavedLocations();
+  renderHistory();
+  renderSavedLocs();
+  renderSavedPicks();
 }
 
 function updateHeaderUser(user) {
@@ -251,76 +122,32 @@ function updateHeaderUser(user) {
   document.getElementById('headerName').textContent   = user.name;
 }
 
-async function doLogin() {
-  const email    = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPassword').value;
-  const errEl    = document.getElementById('loginError');
-  const btn      = document.getElementById('loginBtn');
-  if (!email || !password) { showFormError(errEl, 'Please fill in all fields'); return; }
-  errEl.classList.remove('show');
-  btn.textContent = 'Signing in...'; btn.disabled = true;
-  try {
-    await fbLogin(email, password);
-  } catch(e) {
-    showFormError(errEl, friendlyAuthError(e.code));
-    btn.textContent = 'Sign In'; btn.disabled = false;
-  }
-}
-
-async function doRegister() {
-  const name     = document.getElementById('regName').value.trim();
-  const email    = document.getElementById('regEmail').value.trim();
-  const password = document.getElementById('regPassword').value;
-  const errEl    = document.getElementById('registerError');
-  const btn      = document.getElementById('registerBtn');
-  if (!name || !email || !password) { showFormError(errEl, 'Please fill in all fields'); return; }
-  if (password.length < 6) { showFormError(errEl, 'Password must be at least 6 characters'); return; }
-  errEl.classList.remove('show');
-  btn.textContent = 'Creating account...'; btn.disabled = true;
-  try {
-    await fbRegister(email, password, name);
-  } catch(e) {
-    showFormError(errEl, friendlyAuthError(e.code));
-    btn.textContent = 'Create Account'; btn.disabled = false;
-  }
+function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const errEl = document.getElementById('loginError');
+  if (!email) { showFormError(errEl, 'Please enter your email'); return; }
+  const result = Auth.validateEmail(email);
+  if (!result.valid) { showFormError(errEl, result.error); return; }
+  if (result.type !== 'customer') { showFormError(errEl, 'Please use a @customer.mail email address'); return; }
+  const user = Auth.login(email);
+  window._currentUser = user;
+  onUserLoggedIn(user);
 }
 
 function doGuestMode() {
-  window._currentUser = { uid:'guest-'+Date.now(), email:'', name:'Guest', isGuest:true };
-  onUserLoggedIn(window._currentUser);
+  const user = Auth.loginAsGuest('customer');
+  window._currentUser = user;
+  onUserLoggedIn(user);
 }
 
-async function doSignOut() {
+function doSignOut() {
   closeModal('userMenuModal');
-  await fbSignOut().catch(()=>{});
   window._currentUser = null;
-  onUserLoggedOut();
-  showToast('👋 Signed out successfully');
+  Auth.logout();
 }
 
-function showAuthGate(tab) {
+function showAuthGate() {
   showEl('authGate');
-  if (tab === 'register') switchAuthTab('register');
-}
-
-function switchAuthTab(tab) {
-  document.querySelectorAll('.auth-tab').forEach((el,i) => {
-    el.classList.toggle('active', (tab==='login'&&i===0)||(tab==='register'&&i===1));
-  });
-  document.getElementById('loginForm').style.display    = tab==='login'    ? 'block' : 'none';
-  document.getElementById('registerForm').style.display = tab==='register' ? 'block' : 'none';
-}
-
-function friendlyAuthError(code) {
-  return ({
-    'auth/user-not-found':       'No account found with this email.',
-    'auth/wrong-password':       'Incorrect password.',
-    'auth/invalid-credential':   'Incorrect email or password.',
-    'auth/email-already-in-use': 'Email already registered.',
-    'auth/invalid-email':        'Invalid email address.',
-    'auth/weak-password':        'Password is too weak.',
-    'auth/too-many-requests':    'Too many attempts. Try again later.',
-  })[code] || 'Something went wrong. Please try again.';
 }
 
 function showFormError(el, msg) { el.textContent = msg; el.classList.add('show'); }
@@ -372,7 +199,6 @@ function formatPrice(tier) {
     const est = tier.basePrice + tier.pricePerKm * state.estimatedKm;
     return `Rp ${Math.round(est/1000)*1000 .toLocaleString('id-ID')}`;
   }
-  // Show price range when no distance estimate is available
   const lo = tier.basePrice;
   const hi = tier.basePrice + tier.pricePerKm * 8;
   return `Rp ${(lo/1000).toFixed(0)}.000–${(hi/1000).toFixed(0)}.000`;
@@ -432,15 +258,13 @@ function updatePriceEstimate() {
     return;
   }
 
-  // Show calculating spinner
   document.getElementById('priceValue').innerHTML = '<span class="spin">⟳</span>';
   document.getElementById('priceSub').textContent = 'Calculating...';
 
   clearTimeout(priceTimer);
   priceTimer = setTimeout(() => {
-    // Simulate distance calculation (1.5 – 22 km based on string hash)
     const hash = (p + d).split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-    const km   = 1.5 + (hash % 200) / 10;   // 1.5 – 21.5 km
+    const km   = 1.5 + (hash % 200) / 10;
     state.estimatedKm = km;
 
     const tier = getTierData();
@@ -501,10 +325,10 @@ function useSavedAsDestination(addr) {
   showToast(`🎯 Destination set to: ${addr}`);
 }
 
-async function removeSavedLoc(id) {
+function removeSavedLoc(id) {
   state.savedLocs = state.savedLocs.filter(l => l.id !== id);
+  Storage.setSavedLocations(state.savedLocs);
   renderSavedLocs(); renderSavedPicks();
-  await fbDeleteLoc(id).catch(()=>{});
   showToast('🗑 Location removed');
 }
 
@@ -522,19 +346,17 @@ function selectLocType(btn, icon) {
   btn.classList.add('active');
 }
 
-async function saveSavedLocation() {
+function saveSavedLocation() {
   const label   = document.getElementById('savedLocLabel').value.trim();
   const address = document.getElementById('savedLocAddr').value.trim();
   if (!label || !address) { showToast('⚠️ Please fill in label & address'); return; }
 
-  const newLoc = { id: 'demo-' + Date.now(), icon: state.savedLocType, label, address };
+  const newLoc = { id: 'loc-' + Date.now(), icon: state.savedLocType, label, address };
   state.savedLocs.push(newLoc);
+  Storage.setSavedLocations(state.savedLocs);
   renderSavedLocs(); renderSavedPicks();
   closeModal('addSavedModal');
   showToast('✅ Location saved!');
-
-  const savedId = await fbSaveLoc({ icon: state.savedLocType, label, address }).catch(()=>null);
-  if (savedId) { newLoc.id = savedId; }
 }
 
 // ─────────────────────────────────────────────
@@ -561,11 +383,12 @@ function openConfirmModal() {
   openModal('confirmModal');
 }
 
-async function proceedBook() {
+function proceedBook() {
   closeModal('confirmModal');
   showToast('🔍 Searching across Gojek & Grab...');
 
   const orderData = {
+    id:            'local-' + Date.now(),
     pickup:        state.pickup,
     destination:   state.destination,
     vehicle:       state.vehicle,
@@ -574,29 +397,17 @@ async function proceedBook() {
     estimatedKm:   state.estimatedKm,
     estimatedFare: document.getElementById('priceValue').textContent,
     status:        'searching',
+    createdAt:     new Date().toISOString(),
   };
 
-  // Add to local cache immediately so history updates right away
-  const tempId = 'local-' + Date.now();
-  orderData.id = tempId;
   addLocalOrder(orderData);
+  state.currentOrderId = orderData.id;
 
-  // Save to Firestore (if configured)
-  const orderId = await fbSaveOrder(orderData);
-  state.currentOrderId = orderId;
-
-  // Update local cache with the real Firestore ID
-  if (orderId !== tempId) {
-    state.orders = state.orders.map(o => o.id === tempId ? { ...o, id: orderId } : o);
-  }
-
-  // Select a driver matching the chosen vehicle type
-  setTimeout(async () => {
+  setTimeout(() => {
     const driverPool = MOCK_DRIVERS[state.vehicle] || MOCK_DRIVERS.motorcycle;
     const driver = driverPool[Math.floor(Math.random() * driverPool.length)];
     state.currentDriver = driver;
-    await fbUpdateOrder(orderId, 'driver_found', { driverName: driver.name });
-    updateLocalOrder(orderId, 'driver_found', { driverName: driver.name });
+    updateLocalOrder(orderData.id, 'driver_found', { driverName: driver.name });
     showDriverModal(driver);
     addBotMessage(`✅ Driver found! **${driver.name}** (${driver.vehicle}) is **${driver.eta} min** away via ${driver.platform.charAt(0).toUpperCase()+driver.platform.slice(1)}.`);
   }, 2200);
@@ -618,7 +429,6 @@ function showDriverModal(driver) {
     <div class="det-row"><span class="det-label">💰 Fare</span><span class="det-val" style="color:var(--accent)">${document.getElementById('priceValue').textContent}</span></div>
   `;
 
-  // Reset progress bar
   document.getElementById('progFill').style.width = '0%';
   ['ps1','ps2','ps3'].forEach((id,i) => {
     document.getElementById(id).className = 'p-step' + (i===0?' done':'');
@@ -627,28 +437,24 @@ function showDriverModal(driver) {
 
   openModal('driverModal');
 
-  // Animate progress to "En Route"
-  setTimeout(async () => {
+  setTimeout(() => {
     document.getElementById('progFill').style.width = '50%';
     document.getElementById('ps2').classList.add('done');
     document.getElementById('ps2').textContent = '✓ En Route';
-    await fbUpdateOrder(state.currentOrderId, 'en_route');
     updateLocalOrder(state.currentOrderId, 'en_route');
   }, 1600);
 }
 
-async function completeRide() {
+function completeRide() {
   document.getElementById('progFill').style.width = '100%';
   document.getElementById('ps3').classList.add('done');
   document.getElementById('ps3').textContent = '✓ Arrived';
-  await fbUpdateOrder(state.currentOrderId, 'completed');
   updateLocalOrder(state.currentOrderId, 'completed');
   closeModal('driverModal');
   openRatingModal();
 }
 
-async function cancelRide() {
-  await fbUpdateOrder(state.currentOrderId, 'cancelled');
+function cancelRide() {
   updateLocalOrder(state.currentOrderId, 'cancelled');
   closeModal('driverModal');
   addBotMessage("Your ride has been cancelled. Need another ride? Just let me know! 🛵");
@@ -672,11 +478,10 @@ function setRating(n) {
   document.querySelectorAll('.star-btn').forEach((b,i) => b.classList.toggle('lit', i < n));
 }
 
-async function submitRating() {
+function submitRating() {
   if (state.userRating === 0) { showToast('⭐ Please select a rating'); return; }
   const review = document.getElementById('reviewText').value.trim();
   const ratingData = { rating: state.userRating, review };
-  await fbUpdateOrder(state.currentOrderId, 'completed', ratingData);
   updateLocalOrder(state.currentOrderId, 'completed', ratingData);
   closeModal('ratingModal');
   addBotMessage(`Thanks for rating **${state.currentDriver?.name}** ${state.userRating}⭐! Safe travels! 🛵`);
@@ -685,16 +490,12 @@ async function submitRating() {
 }
 
 // ─────────────────────────────────────────────
-//  LOCAL ORDER CACHE (for guests and Firebase fallback)
+//  LOCAL ORDER CACHE
 // ─────────────────────────────────────────────
 function addLocalOrder(orderData) {
-  const newOrder = {
-    id: orderData.id || 'local-' + Date.now(),
-    ...orderData,
-    timestamp: { toDate: () => new Date() }, // mimic Firestore timestamp shape
-  };
-  // Prepend (most recent first)
+  const newOrder = { ...orderData };
   state.orders = [newOrder, ...state.orders.filter(o => o.id !== newOrder.id)];
+  Storage.setOrders(state.orders);
   renderHistory();
 }
 
@@ -702,6 +503,7 @@ function updateLocalOrder(orderId, status, extra = {}) {
   state.orders = state.orders.map(o =>
     o.id === orderId ? { ...o, status, ...extra } : o
   );
+  Storage.setOrders(state.orders);
   renderHistory();
 }
 
@@ -721,8 +523,8 @@ function renderHistory() {
   empty.style.display = 'none';
 
   list.innerHTML = orders.map(o => {
-    const date = o.timestamp?.toDate?.()
-      ? o.timestamp.toDate().toLocaleDateString('en-US', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})
+    const date = o.createdAt
+      ? new Date(o.createdAt).toLocaleDateString('en-US', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})
       : 'Just now';
     const vehicleTiers = TIERS[o.vehicle] || {};
     const tier = (vehicleTiers[o.service] || []).find(t => t.id === o.tier);
@@ -761,7 +563,7 @@ function renderHistory() {
 //  CHAT — AI assistant + driver message sync
 // ─────────────────────────────────────────────
 function initGuestChat() {
-  addBotMessage("Hey! 👋 I'm your RideFlow assistant. Tell me where you want to go and I'll set up your booking instantly!", [
+  addBotMessage("Hey! �� I'm your RideFlow assistant. Tell me where you want to go and I'll set up your booking instantly!", [
     { label: '🏙 Sudirman → Grand Indonesia', text: 'Ride from Sudirman to Grand Indonesia' },
     { label: '📦 Send Package', text: 'Send a package from Kemang to Senayan' },
     { label: '🚗 Car from SCBD', text: 'Car ride from SCBD to Kuningan' },
@@ -879,6 +681,7 @@ function sendMessage() {
   typing.classList.add('show');
 
   // Also send to driver via shared storage
+  const user = window._currentUser;
   ChatSyncBridge.sendTextMessage(text);
 
   setTimeout(() => {
@@ -896,6 +699,17 @@ function handleKey(e) {
 function autoResize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
 
 // ─────────────────────────────────────────────
+//  DELETE CHAT HISTORY
+// ─────────────────────────────────────────────
+function deleteChatHistory() {
+  if (!window.confirm('Delete all chat history? This cannot be undone.')) return;
+  ChatSyncBridge.deleteChatHistory(DEMO_ORDER_ID);
+  document.getElementById('chatMessages').innerHTML = '';
+  addBotMessage('Chat history cleared. 🗑️');
+  showToast('🗑️ Chat history deleted');
+}
+
+// ─────────────────────────────────────────────
 //  CHAT SYNC BRIDGE — receive driver messages
 // ─────────────────────────────────────────────
 function _initChatSyncBridge(userId) {
@@ -904,8 +718,9 @@ function _initChatSyncBridge(userId) {
     const msgs = document.getElementById('chatMessages');
     if (!msgs) return;
 
+    const senderLabel = msg.senderName ? msg.senderName + ' (Driver)' : 'Driver';
+
     if (msg.type === 'image') {
-      // Only accept data: URLs starting with data:image/ to prevent injection
       const safeName = escHtml(msg.fileName || 'image');
       const safeSrc  = (typeof msg.imageUrl === 'string' && /^data:image\//.test(msg.imageUrl)) ? msg.imageUrl : '';
       msgs.innerHTML += `
@@ -918,7 +733,7 @@ function _initChatSyncBridge(userId) {
                    onclick="this.requestFullscreen && this.requestFullscreen()">
               <div style="font-size:10px;color:var(--muted);margin-top:3px;">${safeName}</div>
             </div>
-            <div class="msg-time">${time} · Driver</div>
+            <div class="msg-time">${time} · ${senderLabel}</div>
           </div>
         </div>`;
     } else {
@@ -927,11 +742,14 @@ function _initChatSyncBridge(userId) {
           <div class="msg-avatar bot">D</div>
           <div>
             <div class="msg-bubble">${escHtml(msg.content)}</div>
-            <div class="msg-time">${time} · Driver</div>
+            <div class="msg-time">${time} · ${senderLabel}</div>
           </div>
         </div>`;
     }
     msgs.scrollTop = msgs.scrollHeight;
+  }, function onChatCleared() {
+    document.getElementById('chatMessages').innerHTML = '';
+    addBotMessage('Chat history was cleared. 🗑️');
   });
 }
 
@@ -980,13 +798,11 @@ function escHtml(s) {
 }
 
 // ─────────────────────────────────────────────
-//  EXPOSE ALL FUNCTIONS TO WINDOW
-//  (ES module scope is isolated — must expose explicitly for onclick= attributes)
+//  EXPOSE FUNCTIONS TO WINDOW
 // ─────────────────────────────────────────────
 Object.assign(window, {
   // Auth
-  switchAuthTab, doLogin, doRegister, doGuestMode, doSignOut,
-  showAuthGate, showUserMenu,
+  doLogin, doGuestMode, doSignOut, showAuthGate, showUserMenu,
   // Booking
   selectVehicle, selectService, selectTierById, swapLocations,
   openConfirmModal, proceedBook, completeRide, cancelRide,
@@ -997,28 +813,29 @@ Object.assign(window, {
   removeSavedLoc, useSavedLoc, useSavedAsDestination,
   // Chat & UI
   switchChatTab, sendMessage, sendSuggestion, handleKey, autoResize,
-  openModal, closeModal, addBotMessage,
+  openModal, closeModal, addBotMessage, deleteChatHistory,
   escHtml,
 });
 
 // ─────────────────────────────────────────────
-//  INITIALIZATION
+//  INITIALIZATION (runs after DOMContentLoaded)
 // ─────────────────────────────────────────────
-renderTiers();
+document.addEventListener('DOMContentLoaded', () => {
+  // Render tiers once DOM is ready (auth check also runs on DOMContentLoaded, this is safe
+  // because both handlers are registered before the event fires)
+  renderTiers();
 
-// Input listeners for price estimator
-document.getElementById('pickupInput').addEventListener('input', e => { state.pickup = e.target.value; updatePriceEstimate(); });
-document.getElementById('destInput').addEventListener('input',  e => { state.destination = e.target.value; updatePriceEstimate(); });
+  const pickupEl = document.getElementById('pickupInput');
+  const destEl   = document.getElementById('destInput');
+  if (pickupEl) pickupEl.addEventListener('input', e => { state.pickup = e.target.value; updatePriceEstimate(); });
+  if (destEl)   destEl.addEventListener('input',  e => { state.destination = e.target.value; updatePriceEstimate(); });
 
-// Close modals when clicking outside
-document.querySelectorAll('.modal-overlay').forEach(overlay => {
-  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('show'); });
-});
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('show'); });
+  });
 
-// Enter key on auth inputs
-['loginEmail','loginPassword'].forEach(id => {
-  document.getElementById(id)?.addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
-});
-['regName','regEmail','regPassword'].forEach(id => {
-  document.getElementById(id)?.addEventListener('keydown', e => { if(e.key==='Enter') doRegister(); });
+  const loginEmailEl = document.getElementById('loginEmail');
+  if (loginEmailEl) {
+    loginEmailEl.addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+  }
 });

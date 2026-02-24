@@ -452,11 +452,13 @@ const state = {
   earnings: {
     gross: 0,
     trips: 0,
+    byService: { ride: 0, package: 0, food: 0 },
   },
   onlineStartTime: Date.now(),
   msgIdCounter: 10,
-  orderStep: 'pickup', // 'pickup' | 'dropoff'
-  pendingImage: null,  // { dataUrl, fileName } waiting to be sent
+  orderStep: 'pickup',
+  pendingImage: null,
+  enabledServices: ['ride', 'package', 'food'],
 };
 
 // =============================================
@@ -770,6 +772,12 @@ function completeTrip() {
   state.earnings.trips += 1;
   state.earnings.gross += order.fareRaw;
 
+  // Track earnings by service type
+  const serviceKey = order.serviceType || (order.type === 'car' ? 'ride' : 'ride');
+  if (state.earnings.byService[serviceKey] !== undefined) {
+    state.earnings.byService[serviceKey] += order.fareRaw;
+  }
+
   updateEarnings();
   updateMapStatus('Trip completed · Searching for orders…');
   clearActiveOrderInfo();
@@ -966,14 +974,17 @@ function sendDriverMessage() {
 
   // Persist to shared storage so the customer dashboard can see it
   if (state.activeOrderId) {
+    const user = window._currentUser;
     ChatSync.sendMessage(CHAT_CHANNEL, {
-      id:        'drv-' + msg.id,
-      orderId:   CHAT_CHANNEL,
-      sender:    'driver',
-      type:      'text',
-      content:   text,
-      timestamp: new Date().toISOString(),
-      read:      false,
+      id:          'drv-' + msg.id,
+      orderId:     CHAT_CHANNEL,
+      sender:      'driver',
+      senderName:  (user && user.name) ? user.name : (DRIVER_INFO.name || 'Driver'),
+      senderEmail: (user && user.email) ? user.email : '',
+      type:        'text',
+      content:     text,
+      timestamp:   new Date().toISOString(),
+      read:        false,
     });
   }
 
@@ -1009,16 +1020,19 @@ function _sendDriverImage(dataUrl, fileName) {
 
   // Persist to shared storage
   if (state.activeOrderId) {
+    const user = window._currentUser;
     ChatSync.sendMessage(CHAT_CHANNEL, {
-      id:        'drv-img-' + msg.id,
-      orderId:   CHAT_CHANNEL,
-      sender:    'driver',
-      type:      'image',
-      content:   fileName || 'image',
-      imageUrl:  dataUrl,
-      fileName:  fileName || 'image',
-      timestamp: new Date().toISOString(),
-      read:      false,
+      id:          'drv-img-' + msg.id,
+      orderId:     CHAT_CHANNEL,
+      sender:      'driver',
+      senderName:  (user && user.name) ? user.name : (DRIVER_INFO.name || 'Driver'),
+      senderEmail: (user && user.email) ? user.email : '',
+      type:        'image',
+      content:     fileName || 'image',
+      imageUrl:    dataUrl,
+      fileName:    fileName || 'image',
+      timestamp:   new Date().toISOString(),
+      read:        false,
     });
   }
 
@@ -1122,6 +1136,18 @@ function updateEarnings() {
     document.getElementById('platformFee').textContent       = '- ' + formatCurrency(fee);
     document.getElementById('netEarnings').textContent       = formatCurrency(net);
   }
+
+  // Update earnings breakdown by service type
+  const breakdownEl = document.getElementById('earningsBreakdown');
+  if (breakdownEl && gross > 0) {
+    const b = state.earnings.byService;
+    breakdownEl.style.display = 'block';
+    breakdownEl.innerHTML = `
+      <div class="comm-row"><span class="comm-label">🛵 Ride</span><span class="comm-val positive">${formatCurrency(b.ride || 0)}</span></div>
+      <div class="comm-row"><span class="comm-label">📦 Package</span><span class="comm-val positive">${formatCurrency(b.package || 0)}</span></div>
+      <div class="comm-row"><span class="comm-label">🍱 Food</span><span class="comm-val positive">${formatCurrency(b.food || 0)}</span></div>
+    `;
+  }
 }
 
 function updateOnlineTime() {
@@ -1181,11 +1207,90 @@ const SIMULATED_NEW_ORDER = {
 };
 
 // =============================================
+// SERVICE TOGGLES
+// =============================================
+function toggleService(service) {
+  const idx = state.enabledServices.indexOf(service);
+  if (idx >= 0) {
+    if (state.enabledServices.length <= 1) {
+      showToast('⚠️ At least one service must be enabled');
+      return;
+    }
+    state.enabledServices.splice(idx, 1);
+    showToast(service.charAt(0).toUpperCase() + service.slice(1) + ' service disabled');
+  } else {
+    state.enabledServices.push(service);
+    showToast(service.charAt(0).toUpperCase() + service.slice(1) + ' service enabled');
+  }
+  renderServiceToggles();
+}
+
+function renderServiceToggles() {
+  const container = document.getElementById('serviceTogglesContainer');
+  if (!container) return;
+  const services = [
+    { id: 'ride',    label: 'Ride',    icon: '🛵' },
+    { id: 'package', label: 'Package', icon: '📦' },
+    { id: 'food',    label: 'Food',    icon: '🍱' },
+  ];
+  container.innerHTML = services.map(s => {
+    const enabled = state.enabledServices.includes(s.id);
+    return `<button class="service-toggle-btn ${enabled ? 'enabled' : ''}" onclick="toggleService('${s.id}')">
+      ${s.icon} ${s.label}
+    </button>`;
+  }).join('');
+}
+
+// =============================================
+// SIGN OUT
+// =============================================
+function doSignOut() {
+  if (typeof Auth !== 'undefined') {
+    Auth.logout();
+  } else {
+    window.location.href = '../auth/login.html';
+  }
+}
+
+// =============================================
+// DELETE CHAT HISTORY (driver side)
+// =============================================
+function deleteDriverChatHistory() {
+  if (!state.activeOrderId) { showToast('⚠️ No active chat to clear'); return; }
+  if (!window.confirm('Delete all chat history? This cannot be undone.')) return;
+  ChatSync.deleteChatHistory(CHAT_CHANNEL);
+  state.messages = [];
+  const container = document.getElementById('chatMessages');
+  if (container) container.innerHTML = '';
+  appendSystemMessage('Chat history cleared');
+  showToast('🗑️ Chat history deleted');
+}
+
+// =============================================
 // INITIALIZATION
 // =============================================
 function init() {
+  // Auth check — redirect if not a driver
+  const user = (typeof Auth !== 'undefined') ? Auth.getCurrentUser() : null;
+  if (!user || user.type !== 'driver') {
+    window.location.href = '../auth/login.html';
+    return;
+  }
+
+  // Display driver name from session
+  const nameEl = document.getElementById('driverName');
+  if (nameEl && !user.isGuest) {
+    nameEl.textContent = user.name;
+  }
+
+  // Store user on window for convenience
+  window._currentUser = user;
+
   // Connect WebSocket (mock mode)
   RideFlowWS.connect();
+
+  // Render service toggles
+  renderServiceToggles();
 
   // Render initial order list
   renderOrders();

@@ -41,6 +41,7 @@
     <a href="../customer-dashboard/" class="customer-app-link">
       Customer App
     </a>
+    <button onclick="doSignOut()" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.2);color:#ef4444;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;" title="Sign Out">Sign Out</button>
   </div>
 </header>
 
@@ -126,6 +127,9 @@
           <button class="quick-chip" onclick="sendQuickReply('Please wait a moment 🙏')">Please wait</button>
           <button class="quick-chip" onclick="sendQuickReply('Trip completed! Thank you 😊')">Trip completed!</button>
         </div>
+        <div style="margin-top:6px;text-align:right;">
+          <button onclick="deleteDriverChatHistory()" style="font-size:11px;color:var(--muted,#52525e);background:none;border:none;cursor:pointer;padding:2px 4px;" title="Delete chat history">🗑 Clear chat</button>
+        </div>
       </div>
 
       <!-- Image preview strip (before send) -->
@@ -167,6 +171,13 @@
         </div>
       </div>
 
+      <!-- Services -->
+      <div class="profile-section" style="margin-top:0;">
+        <div class="earnings-title">My Services</div>
+        <div style="font-size:11px;color:var(--text2,#a0a0b8);margin-bottom:8px;">Toggle the services you offer</div>
+        <div id="serviceTogglesContainer" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+      </div>
+
       <!-- Earnings -->
       <div class="earnings-section">
         <div class="earnings-title">Today's Earnings</div>
@@ -202,6 +213,9 @@
             <span class="comm-label" style="font-weight:600;color:var(--text);">Net Earnings</span>
             <span class="comm-val positive" style="font-size:14px;" id="netEarnings">Rp 0</span>
           </div>
+        </div>
+        <!-- Earnings breakdown by service -->
+        <div id="earningsBreakdown" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border2,rgba(255,255,255,0.06));">
         </div>
       </div>
 
@@ -306,8 +320,9 @@
         crossorigin=""></script>
 <script src="../shared/constants.js"></script>
 <script src="../shared/storage.js"></script>
-<script src="../shared/chat-sync.js"></script>
 <script src="../shared/api.js"></script>
+<script src="../shared/auth.js"></script>
+<script src="../shared/chat-sync.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

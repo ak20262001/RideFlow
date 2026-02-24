@@ -711,3 +711,22 @@ header {
   font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px;
   background: var(--accent2); color: #fff; margin-left: auto;
 }
+
+/* Service toggle buttons */
+.service-toggle-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border2);
+  background: rgba(255,255,255,0.04);
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.service-toggle-btn.enabled {
+  background: rgba(110,231,183,0.12);
+  border-color: rgba(110,231,183,0.3);
+  color: var(--accent);
+}
+.service-toggle-btn:hover { opacity: 0.82; }

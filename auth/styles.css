@@ -1,0 +1,312 @@
+/* =============================================
+   RideFlow — Auth Page Styles
+   Dark theme matching the existing dashboards
+============================================= */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #080810;
+  --surface:   #0f0f1a;
+  --surface2:  #13131f;
+  --surface3:  #1a1a2e;
+  --border:    rgba(255,255,255,0.06);
+  --border2:   rgba(255,255,255,0.10);
+  --accent:    #6ee7b7;
+  --accent2:   #3b82f6;
+  --accent3:   #f59e0b;
+  --danger:    #ef4444;
+  --text:      #f0f0ff;
+  --text2:     #a0a0b8;
+  --muted:     #52525e;
+  --glow:      rgba(110,231,183,0.12);
+}
+
+html, body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ── Background mesh ─────────────────────── */
+.bg-mesh {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(110,231,183,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 110%, rgba(59,130,246,0.06) 0%, transparent 55%);
+  pointer-events: none;
+}
+
+/* ── Page layout ─────────────────────────── */
+.page {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+}
+
+/* ── Logo ────────────────────────────────── */
+.logo-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.logo-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 4px 20px rgba(110,231,183,0.25);
+}
+
+.logo-text {
+  font-family: 'Syne', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.5px;
+}
+
+.logo-sub {
+  font-size: 13px;
+  color: var(--text2);
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+/* ── Login card grid ─────────────────────── */
+.login-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  width: 100%;
+  max-width: 780px;
+}
+
+@media (max-width: 640px) {
+  .login-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Role card ───────────────────────────── */
+.role-card {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 18px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.role-card:hover {
+  border-color: rgba(110,231,183,0.2);
+  box-shadow: 0 0 28px var(--glow);
+}
+
+.role-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.role-card-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.role-card-icon.customer {
+  background: linear-gradient(135deg, rgba(110,231,183,0.15), rgba(110,231,183,0.05));
+  border: 1px solid rgba(110,231,183,0.2);
+}
+
+.role-card-icon.driver {
+  background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05));
+  border: 1px solid rgba(59,130,246,0.2);
+}
+
+.role-card-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.role-card-sub {
+  font-size: 12px;
+  color: var(--text2);
+  margin-top: 2px;
+}
+
+/* ── Form elements ───────────────────────── */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text2);
+  text-transform: uppercase;
+}
+
+.form-input {
+  background: var(--surface3);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 10px 13px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s;
+  width: 100%;
+}
+
+.form-input::placeholder { color: var(--muted); }
+
+.form-input:focus {
+  border-color: rgba(110,231,183,0.4);
+  box-shadow: 0 0 0 3px rgba(110,231,183,0.06);
+}
+
+/* ── Error message ───────────────────────── */
+.form-error {
+  font-size: 12px;
+  color: var(--danger);
+  min-height: 16px;
+  display: none;
+}
+
+.form-error.show { display: block; }
+
+/* ── Buttons ─────────────────────────────── */
+.btn-primary {
+  width: 100%;
+  padding: 11px 16px;
+  background: linear-gradient(135deg, var(--accent), #34d399);
+  color: #080810;
+  font-family: 'Syne', sans-serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: opacity 0.18s, transform 0.12s;
+  letter-spacing: 0.02em;
+}
+
+.btn-primary:hover  { opacity: 0.88; }
+.btn-primary:active { transform: scale(0.98); }
+
+.btn-driver {
+  background: linear-gradient(135deg, var(--accent2), #60a5fa);
+  color: #fff;
+}
+
+.btn-outline {
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  color: var(--text2);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+}
+
+.btn-outline:hover {
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+}
+
+.divider-or {
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  margin: 2px 0;
+}
+
+/* ── Already logged in notice ────────────── */
+.already-notice {
+  width: 100%;
+  max-width: 780px;
+  background: var(--surface);
+  border: 1px solid rgba(110,231,183,0.2);
+  border-radius: 14px;
+  padding: 18px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.already-notice-text {
+  font-size: 13px;
+  color: var(--text2);
+}
+
+.already-notice-text strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.already-notice-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-small {
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.btn-small:hover { opacity: 0.82; }
+
+.btn-small-accent {
+  background: linear-gradient(135deg, var(--accent), #34d399);
+  color: #080810;
+}
+
+.btn-small-ghost {
+  background: rgba(255,255,255,0.06);
+  color: var(--text2);
+  border: 1px solid var(--border2);
+}
