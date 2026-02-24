@@ -167,7 +167,6 @@ const Storage = (() => {
    */
   function migrate() {
     // No migrations needed for initial version
-    console.log('[Storage] Migration check complete');
   }
 
   return {

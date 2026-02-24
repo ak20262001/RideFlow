@@ -343,7 +343,8 @@ const MapIntegration = (() => {
 // =============================================
 // DRIVER CONSTANTS
 // =============================================
-const PLATFORM_FEE_RATE = 0.2; // 20% platform commission
+// Platform fee rate — use shared constant (CONSTANTS.PLATFORM_FEE_RATE = 0.20)
+const PLATFORM_FEE_RATE = (typeof CONSTANTS !== 'undefined') ? CONSTANTS.PLATFORM_FEE_RATE : 0.20;
 
 // Shared localStorage channel key for cross-tab chat sync
 const CHAT_CHANNEL = 'ORD-DEMO';
