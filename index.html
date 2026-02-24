@@ -1981,5 +1981,75 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
   document.getElementById(id)?.addEventListener('keydown', e => { if(e.key==='Enter') doRegister(); });
 });
 </script>
+<script src="chat-sync-bridge.js"></script>
+<script>
+/* =============================================
+   Customer-side chat sync integration
+   Activates when a booking is active so the
+   driver dashboard can receive messages.
+============================================= */
+(function() {
+  // Use a fixed demo order ID so the bridge can connect both tabs.
+  // In a real app this would come from the booking confirmation.
+  const DEMO_ORDER_ID = 'ORD-DEMO';
+
+  function _esc(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // Only accept data: URLs starting with data:image/ to prevent protocol injection
+  function _safeImgSrc(url) {
+    return (typeof url === 'string' && /^data:image\//.test(url)) ? url : '';
+  }
+
+  // Activate bridge (listens for driver replies)
+  ChatSyncBridge.init(DEMO_ORDER_ID, 'customer', function onDriverMessage(msg) {
+    const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const msgs = document.getElementById('chatMessages');
+    if (!msgs) return;
+    if (msg.type === 'image') {
+      const safeName = _esc(msg.fileName || 'image');
+      const safeSrc  = _safeImgSrc(msg.imageUrl);
+      msgs.innerHTML += `
+        <div class="msg bot">
+          <div class="msg-avatar bot">D</div>
+          <div>
+            <div class="msg-bubble" style="padding:6px;">
+              <img src="${safeSrc}" alt="${safeName}"
+                   style="max-width:200px;border-radius:8px;display:block;cursor:zoom-in;"
+                   onclick="this.requestFullscreen&&this.requestFullscreen()">
+              <div style="font-size:10px;color:var(--muted);margin-top:3px;">${safeName}</div>
+            </div>
+            <div class="msg-time">${time} · Driver</div>
+          </div>
+        </div>`;
+    } else {
+      msgs.innerHTML += `
+        <div class="msg bot">
+          <div class="msg-avatar bot">D</div>
+          <div>
+            <div class="msg-bubble">${escHtml(msg.content)}</div>
+            <div class="msg-time">${time} · Driver</div>
+          </div>
+        </div>`;
+    }
+    msgs.scrollTop = msgs.scrollHeight;
+  });
+
+  // Override sendMessage to also write to shared storage
+  const _origSendMessage = window.sendMessage;
+  window.sendMessage = function() {
+    const input = document.getElementById('chatInput');
+    const text  = input ? input.value.trim() : '';
+    _origSendMessage.apply(this, arguments);
+    if (text) ChatSyncBridge.sendTextMessage(text);
+  };
+}());
+</script>
 </body>
 </html>
