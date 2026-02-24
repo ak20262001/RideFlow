@@ -660,8 +660,9 @@ This project is open source and available under the MIT License.
 - [MDN Web Docs](https://developer.mozilla.org/) - Documentation
 - [Can I Use](https://caniuse.com/) - Browser compatibility
 
-### Author
-- **Akbar Kharisma** - Initial development and architecture
+### Authors
+- **Alfairaz Putra Anantar** ([@AlfairazAnantar](https://github.com/AlfairazAnantar)) - alfairaz.anantar@student.president.ac.id
+- **Keefi Almer Firdaus** ([@KeefiFirdaus](https://github.com/KeefiFirdaus)) - keefi.firdaus@student.president.ac.id
 
 ### Contributors
 - Open for community contributions
@@ -686,7 +687,8 @@ This project is open source and available under the MIT License.
 - Share console error messages
 - Mention if issue happens in all browsers
 
-### Contact
-- GitHub: [@ak20262001](https://github.com/ak20262001)
-- Email: contact@rideflow.local
+### Contact & Support
+- **Project Email**: ak20262001@gmail.com
+- **GitHub Organization**: [@ak20262001](https://github.com/ak20262001)
 
+This is a collaborative project developed by both Alfairaz and Keefi as part of their studies at President University.
