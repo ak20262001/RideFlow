@@ -93,7 +93,7 @@ const ChatSync = (() => {
    * @param {Object} msg
    */
   function sendMessage(orderId, msg) {
-    const user = (typeof Storage !== 'undefined') ? Storage.getCurrentUser() : null;
+    const user = (typeof Storage !== 'undefined' && typeof Storage.getCurrentUser === 'function') ? Storage.getCurrentUser() : null;
     const enriched = {
       senderName:  msg.senderName  || (user ? user.name  : 'Guest'),
       senderEmail: msg.senderEmail || (user ? user.email : ''),
@@ -255,7 +255,7 @@ const ChatSyncBridge = (() => {
    */
   function sendTextMessage(text) {
     if (!_activeOrderId) return;
-    const user = (typeof Storage !== 'undefined') ? Storage.getCurrentUser() : null;
+    const user = (typeof Storage !== 'undefined' && typeof Storage.getCurrentUser === 'function') ? Storage.getCurrentUser() : null;
     const msg = {
       id:          _genId(),
       orderId:     _activeOrderId,
@@ -277,7 +277,7 @@ const ChatSyncBridge = (() => {
    */
   function sendImageMessage(dataUrl, fileName) {
     if (!_activeOrderId) return;
-    const user = (typeof Storage !== 'undefined') ? Storage.getCurrentUser() : null;
+    const user = (typeof Storage !== 'undefined' && typeof Storage.getCurrentUser === 'function') ? Storage.getCurrentUser() : null;
     const msg = {
       id:          _genId(),
       orderId:     _activeOrderId,

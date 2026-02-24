@@ -531,6 +531,24 @@ function formatOnlineTime(startTime) {
   return h + 'h ' + m + 'm';
 }
 
+/**
+ * Map an order's service type/name to one of the earnings breakdown keys.
+ * @param {Object} order
+ * @returns {'ride'|'package'|'food'}
+ */
+function _getServiceKey(order) {
+  const explicit = { ride: 'ride', food: 'food', delivery: 'package', package: 'package' };
+  if (order.serviceType && explicit[order.serviceType]) {
+    return explicit[order.serviceType];
+  }
+  if (order.serviceName) {
+    const lower = order.serviceName.toLowerCase();
+    if (lower.includes('food')) return 'food';
+    if (lower.includes('delivery') || lower.includes('send') || lower.includes('paket')) return 'package';
+  }
+  return 'ride';
+}
+
 // =============================================
 // TOAST NOTIFICATIONS
 // =============================================
@@ -773,8 +791,7 @@ function completeTrip() {
   state.earnings.gross += order.fareRaw;
 
   // Track earnings by service type
-  const serviceTypeMap = { ride: 'ride', food: 'food', delivery: 'package', package: 'package' };
-  const serviceKey = serviceTypeMap[order.serviceType] || serviceTypeMap[order.serviceName && order.serviceName.toLowerCase().includes('food') ? 'food' : 'ride'] || 'ride';
+  const serviceKey = _getServiceKey(order);
   if (state.earnings.byService[serviceKey] !== undefined) {
     state.earnings.byService[serviceKey] += order.fareRaw;
   }

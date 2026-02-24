@@ -681,7 +681,6 @@ function sendMessage() {
   typing.classList.add('show');
 
   // Also send to driver via shared storage
-  const user = window._currentUser;
   ChatSyncBridge.sendTextMessage(text);
 
   setTimeout(() => {
