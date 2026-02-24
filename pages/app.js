@@ -748,7 +748,7 @@ function renderTiers() {
 function formatPrice(tier) {
   if (state.estimatedKm) {
     const est = tier.basePrice + tier.pricePerKm * state.estimatedKm;
-    return `Rp ${Math.round(est/1000)*1000 .toLocaleString('id-ID')}`;
+    return `Rp ${(Math.round(est/1000)*1000).toLocaleString('id-ID')}`;
   }
   const lo = tier.basePrice;
   const hi = tier.basePrice + tier.pricePerKm * 8;
