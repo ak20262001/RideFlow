@@ -108,10 +108,10 @@ const FormUtils = {
   },
 
   sanitizeInput(input) {
+    // Escape angle brackets to prevent any HTML/script injection
     return String(input).trim()
-      .replace(/<[^>]*>/g, '')   // strip complete HTML tags
-      .replace(/</g, '&lt;')     // escape any remaining < (e.g. unclosed tags)
-      .replace(/>/g, '&gt;');    // escape any remaining >
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
   },
 
   showError(elId, msg) {
