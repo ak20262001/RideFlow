@@ -9,9 +9,9 @@ const Auth = (() => {
   const CURRENT_USER_KEY   = 'rideflow-current-user';
   const CUSTOMER_DOMAIN    = '@customer.mail';
   const DRIVER_DOMAIN      = '@driver.mail';
-  const CUSTOMER_DASHBOARD = '/customer-dashboard/';
-  const DRIVER_DASHBOARD   = '/driver-dashboard/';
-  const LOGIN_PAGE         = '/auth/login.html';
+  const CUSTOMER_DASHBOARD = '/pages/customer.html';
+  const DRIVER_DASHBOARD   = '/pages/driver.html';
+  const LOGIN_PAGE         = '/pages/login.html';
 
   // ── Internal helpers ──────────────────────
 

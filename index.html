@@ -70,9 +70,9 @@
   (function () {
     var user = Auth.getCurrentUser();
     if (user) {
-      window.location.replace(user.type === 'driver' ? '/driver-dashboard/' : '/customer-dashboard/');
+      window.location.replace(user.type === 'driver' ? '/pages/driver.html' : '/pages/customer.html');
     } else {
-      window.location.replace('/auth/login.html');
+      window.location.replace('/pages/login.html');
     }
   })();
 </script>
