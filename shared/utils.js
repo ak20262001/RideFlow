@@ -158,7 +158,8 @@ const Components = {
 
   Button(text, type, id) {
     const cls = type ? `btn btn--${type}` : 'btn';
-    const idAttr = id ? ` id="${id}"` : '';
+    const safeId = id ? id.replace(/[^a-zA-Z0-9_-]/g, '') : '';
+    const idAttr = safeId ? ` id="${safeId}"` : '';
     return `<button class="${cls}"${idAttr}>${ChatUtils.escapeHtml(text)}</button>`;
   },
 };

@@ -841,8 +841,8 @@ function renderSavedLocs() {
         <div class="saved-loc-addr">${loc.address}</div>
       </div>
       <div class="saved-loc-actions">
-        <button class="icon-btn" onclick="useSavedLoc('${escHtml(loc.address)}')" title="Use as pickup">↑</button>
-        <button class="icon-btn delete" onclick="removeSavedLoc('${loc.id}')" title="Delete">✕</button>
+        <button class="icon-btn" onclick="useSavedLoc(${JSON.stringify(loc.address)})" title="Use as pickup">↑</button>
+        <button class="icon-btn delete" onclick="removeSavedLoc(${JSON.stringify(loc.id)})" title="Delete">✕</button>
       </div>
     </div>
   `).join('');
@@ -852,7 +852,7 @@ function renderSavedPicks() {
   const picks = document.getElementById('savedPicks');
   if (state.savedLocs.length === 0) { picks.innerHTML = ''; return; }
   picks.innerHTML = state.savedLocs.slice(0, 4).map(loc => `
-    <button class="saved-pick-btn" onclick="useSavedAsDestination('${escHtml(loc.address)}')" title="Set as destination">
+    <button class="saved-pick-btn" onclick="useSavedAsDestination(${JSON.stringify(loc.address)})" title="Set as destination">
       ${loc.icon || '📌'} ${loc.label}
     </button>
   `).join('');
@@ -1208,7 +1208,12 @@ function handleIntent(intent) {
   return "Not sure what you need. Try: **\"Car ride from Kemang to SCBD\"** or **\"Send package from Sudirman to Depok\"** 📦";
 }
 
-function sendSuggestion(text) { document.getElementById('chatInput').value = text; sendMessage(); }
+function sendSuggestion(text) {
+  const input = document.getElementById('chatInput');
+  if (!input) return;
+  input.value = typeof text === 'string' ? text.slice(0, 500) : '';
+  sendMessage();
+}
 
 function sendMessage() {
   const input = document.getElementById('chatInput');
@@ -1268,7 +1273,7 @@ function _initChatSyncBridge(userId) {
             <div class="msg-bubble" style="padding:6px;">
               <img src="${safeSrc}" alt="${safeName}"
                    style="max-width:200px;border-radius:8px;display:block;cursor:zoom-in;"
-                   onclick="this.requestFullscreen && this.requestFullscreen()">
+                   onclick="if(this.requestFullscreen){this.requestFullscreen().catch(function(){});}">
               <div style="font-size:10px;color:var(--muted);margin-top:3px;">${safeName}</div>
             </div>
             <div class="msg-time">${time} · ${senderLabel}</div>
@@ -2118,6 +2123,9 @@ const AppController = {
       window.location.href = '/pages/login.html';
       return;
     }
+
+    // Show the app shell (unified theme hides it by default)
+    showAppShell();
 
     // Display driver name from session
     const nameEl = document.getElementById('driverName');
