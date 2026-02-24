@@ -773,7 +773,8 @@ function completeTrip() {
   state.earnings.gross += order.fareRaw;
 
   // Track earnings by service type
-  const serviceKey = order.serviceType || (order.type === 'car' ? 'ride' : 'ride');
+  const serviceTypeMap = { ride: 'ride', food: 'food', delivery: 'package', package: 'package' };
+  const serviceKey = serviceTypeMap[order.serviceType] || serviceTypeMap[order.serviceName && order.serviceName.toLowerCase().includes('food') ? 'food' : 'ride'] || 'ride';
   if (state.earnings.byService[serviceKey] !== undefined) {
     state.earnings.byService[serviceKey] += order.fareRaw;
   }

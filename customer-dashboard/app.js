@@ -563,7 +563,7 @@ function renderHistory() {
 //  CHAT — AI assistant + driver message sync
 // ─────────────────────────────────────────────
 function initGuestChat() {
-  addBotMessage("Hey! �� I'm your RideFlow assistant. Tell me where you want to go and I'll set up your booking instantly!", [
+  addBotMessage("Hey! 👋 I'm your RideFlow assistant. Tell me where you want to go and I'll set up your booking instantly!", [
     { label: '🏙 Sudirman → Grand Indonesia', text: 'Ride from Sudirman to Grand Indonesia' },
     { label: '📦 Send Package', text: 'Send a package from Kemang to Senayan' },
     { label: '🚗 Car from SCBD', text: 'Car ride from SCBD to Kuningan' },
