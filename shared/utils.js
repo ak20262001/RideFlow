@@ -108,7 +108,10 @@ const FormUtils = {
   },
 
   sanitizeInput(input) {
-    return String(input).trim().replace(/<[^>]*>/g, '');
+    return String(input).trim()
+      .replace(/<[^>]*>/g, '')   // strip complete HTML tags
+      .replace(/</g, '&lt;')     // escape any remaining < (e.g. unclosed tags)
+      .replace(/>/g, '&gt;');    // escape any remaining >
   },
 
   showError(elId, msg) {
