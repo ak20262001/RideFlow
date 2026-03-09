@@ -1,0 +1,2110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RideFlow Driver — Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================
+   VARIABLES
+============================================ */
+:root {
+  --bg:       #080810;
+  --s1:       #0f0f18;
+  --s2:       #151520;
+  --s3:       #1c1c2a;
+  --s4:       #222232;
+  --border:   rgba(255,255,255,0.06);
+  --border2:  rgba(255,255,255,0.11);
+  --accent:   #6ee7b7;
+  --adim:     rgba(110,231,183,0.1);
+  --accent2:  #3b82f6;
+  --a2dim:    rgba(59,130,246,0.1);
+  --accent3:  #f59e0b;
+  --a3dim:    rgba(245,158,11,0.1);
+  --danger:   #ef4444;
+  --ddim:     rgba(239,68,68,0.1);
+  --text:     #eeeef5;
+  --text2:    #9090a8;
+  --muted:    #4a4a60;
+  --gojek:    #00AA13;
+  --grab:     #00B14F;
+  --online:   #22c55e;
+  --r:        14px;
+  --r-sm:     9px;
+  --r-xs:     6px;
+  --mono:     'JetBrains Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ============================================
+   BACKGROUND MESH
+============================================ */
+.bg-mesh {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 40% at 10% 10%, rgba(110,231,183,0.04) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 60% at 90% 90%, rgba(59,130,246,0.04) 0%, transparent 65%),
+    radial-gradient(ellipse 30% 30% at 50% 50%, rgba(245,158,11,0.02) 0%, transparent 60%);
+}
+
+/* ============================================
+   HEADER / TOPBAR
+============================================ */
+.topbar {
+  position: relative; z-index: 50;
+  height: 60px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+  background: rgba(8,8,16,0.9);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(20px);
+  flex-shrink: 0;
+}
+
+.tb-left { display: flex; align-items: center; gap: 14px; }
+
+.logo {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px; font-weight: 800; letter-spacing: -0.3px;
+  display: flex; align-items: center; gap: 8px;
+}
+.logo-icon {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+.logo-tag {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.12em;
+  padding: 2px 7px; border-radius: 4px;
+  background: var(--a3dim); color: var(--accent3);
+  border: 1px solid rgba(245,158,11,0.2);
+  text-transform: uppercase; margin-left: 4px;
+}
+
+/* Online toggle */
+.online-toggle {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--s2); border: 1px solid var(--border2);
+  border-radius: 40px; padding: 5px 14px 5px 8px;
+  cursor: pointer; transition: all 0.25s; user-select: none;
+}
+.online-toggle.online { border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.06); }
+.toggle-dot {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--muted); display: flex; align-items: center; justify-content: center;
+  transition: all 0.25s; font-size: 11px;
+}
+.online-toggle.online .toggle-dot { background: var(--online); box-shadow: 0 0 10px rgba(34,197,94,0.5); }
+.toggle-label { font-size: 12px; font-weight: 600; color: var(--text2); transition: color 0.25s; }
+.online-toggle.online .toggle-label { color: var(--online); }
+
+.tb-right { display: flex; align-items: center; gap: 12px; }
+
+/* Driver profile chip */
+.driver-chip {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--s2); border: 1px solid var(--border2);
+  border-radius: 40px; padding: 5px 14px 5px 5px;
+}
+.driver-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent2), var(--accent));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: var(--bg); flex-shrink: 0;
+}
+.driver-name-sm { font-size: 12px; font-weight: 600; }
+.driver-plate-sm { font-family: var(--mono); font-size: 10px; color: var(--text2); margin-top: 1px; }
+
+/* Notif bell */
+.notif-btn {
+  width: 34px; height: 34px; border-radius: 9px;
+  background: var(--s2); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; position: relative; transition: all 0.2s;
+  font-size: 15px;
+}
+.notif-btn:hover { border-color: var(--border2); background: var(--s3); }
+.notif-badge {
+  position: absolute; top: -3px; right: -3px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--danger); font-size: 8px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  border: 1.5px solid var(--bg); display: none;
+}
+.notif-badge.show { display: flex; }
+
+/* ============================================
+   MAIN LAYOUT
+============================================ */
+.app-body {
+  position: relative; z-index: 1;
+  flex: 1; display: grid;
+  grid-template-columns: 300px 1fr 360px;
+  overflow: hidden;
+}
+
+/* ============================================
+   LEFT SIDEBAR — Stats & Profile
+============================================ */
+.sidebar-left {
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow-y: auto; overflow-x: hidden;
+  padding: 20px 18px;
+  gap: 14px;
+}
+
+/* Earnings card — hero */
+.earnings-hero {
+  background: linear-gradient(135deg, rgba(110,231,183,0.08), rgba(59,130,246,0.06));
+  border: 1px solid rgba(110,231,183,0.15);
+  border-radius: var(--r);
+  padding: 20px;
+  position: relative; overflow: hidden;
+}
+.earnings-hero::before {
+  content: '';
+  position: absolute; top: -40px; right: -40px;
+  width: 120px; height: 120px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(110,231,183,0.12), transparent 70%);
+}
+.eh-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--text2); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 6px;
+}
+.eh-label::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: inline-block; }
+.eh-amount {
+  font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800;
+  color: var(--accent); line-height: 1;
+}
+.eh-sub { font-size: 11px; color: var(--text2); margin-top: 6px; }
+.eh-progress { margin-top: 14px; }
+.eh-prog-label { display: flex; justify-content: space-between; font-size: 10px; color: var(--text2); margin-bottom: 6px; }
+.eh-prog-track { height: 4px; background: rgba(110,231,183,0.12); border-radius: 4px; overflow: hidden; }
+.eh-prog-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 4px; transition: width 0.8s ease; }
+
+/* Stats grid */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat-card {
+  background: var(--s2); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 14px 12px;
+}
+.stat-icon { font-size: 18px; margin-bottom: 8px; }
+.stat-val {
+  font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700;
+  color: var(--text); line-height: 1;
+}
+.stat-label { font-size: 10px; color: var(--text2); margin-top: 4px; }
+
+/* Section label */
+.sec-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--muted);
+  display: flex; align-items: center; gap: 8px;
+}
+.sec-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+/* Recent earnings list */
+.earning-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.earning-item:last-child { border-bottom: none; }
+.ei-icon {
+  width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
+}
+.ei-info { flex: 1; min-width: 0; }
+.ei-route { font-size: 12px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ei-time { font-size: 10px; color: var(--text2); margin-top: 2px; }
+.ei-amount { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--accent); flex-shrink: 0; }
+
+/* ============================================
+   CENTER — Order Feed
+============================================ */
+.center-panel {
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+
+.center-header {
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.center-title {
+  font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700;
+  display: flex; align-items: center; gap: 8px;
+}
+.live-badge {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+  padding: 3px 8px; border-radius: 20px;
+  background: var(--ddim); color: var(--danger);
+  border: 1px solid rgba(239,68,68,0.25);
+  display: flex; align-items: center; gap: 4px;
+}
+.live-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--danger); animation: blink 1s infinite; }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+.center-filters {
+  display: flex; gap: 6px;
+}
+.filter-btn {
+  padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 600;
+  border: 1px solid var(--border); background: none; color: var(--text2);
+  cursor: pointer; transition: all 0.2s;
+}
+.filter-btn.active { background: var(--adim); border-color: rgba(110,231,183,0.3); color: var(--accent); }
+.filter-btn:hover:not(.active) { border-color: var(--border2); color: var(--text); }
+
+/* Order feed */
+.order-feed {
+  flex: 1; overflow-y: auto;
+  padding: 16px 22px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+/* Incoming order card — dramatic */
+.order-card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  transition: all 0.25s;
+  animation: slideIn 0.35s cubic-bezier(.34,1.2,.64,1);
+  position: relative;
+  cursor: pointer;
+}
+@keyframes slideIn { from { opacity:0; transform: translateY(-12px) scale(0.98); } to { opacity:1; transform: translateY(0) scale(1); } }
+
+.order-card.incoming {
+  border-color: rgba(110,231,183,0.3);
+  box-shadow: 0 0 0 1px rgba(110,231,183,0.1), 0 4px 24px rgba(110,231,183,0.06);
+}
+.order-card.active-ride { border-color: rgba(59,130,246,0.3); }
+.order-card.completed { opacity: 0.6; }
+
+/* Urgency bar on top of incoming cards */
+.urgency-bar {
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+}
+.urgency-bar.timer { animation: shrink 30s linear forwards; }
+@keyframes shrink { from { width: 100%; } to { width: 0%; } }
+
+.order-card-inner { padding: 16px; }
+
+/* Card header */
+.oc-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+.oc-left { display: flex; align-items: center; gap: 10px; }
+.oc-platform {
+  width: 34px; height: 34px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; letter-spacing: -0.3px;
+  flex-shrink: 0;
+}
+.oc-platform.gojek { background: rgba(0,170,19,0.15); color: var(--gojek); border: 1px solid rgba(0,170,19,0.2); }
+.oc-platform.grab  { background: rgba(0,177,79,0.12); color: var(--grab);  border: 1px solid rgba(0,177,79,0.2); }
+
+.oc-customer-name { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; }
+.oc-order-id { font-family: var(--mono); font-size: 10px; color: var(--text2); margin-top: 2px; }
+
+.oc-right { text-align: right; }
+.oc-fare {
+  font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800;
+  color: var(--accent);
+}
+.oc-tier { font-size: 10px; color: var(--text2); margin-top: 2px; }
+.oc-badge {
+  display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: 0.06em;
+  padding: 2px 7px; border-radius: 4px; margin-top: 3px;
+}
+.oc-badge.ride { background: var(--adim); color: var(--accent); }
+.oc-badge.delivery { background: var(--a3dim); color: var(--accent3); }
+.oc-badge.food { background: var(--a2dim); color: var(--accent2); }
+
+/* Route display */
+.oc-route {
+  background: var(--s2); border-radius: var(--r-sm); padding: 12px;
+  margin-bottom: 12px; position: relative;
+}
+.oc-route-item { display: flex; align-items: flex-start; gap: 10px; }
+.oc-route-item + .oc-route-item { margin-top: 10px; }
+.route-dot-wrap {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 0; flex-shrink: 0; padding-top: 3px;
+}
+.route-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.route-dot.pickup { background: var(--accent); box-shadow: 0 0 0 3px rgba(110,231,183,0.15); }
+.route-dot.dest   { background: var(--accent3); box-shadow: 0 0 0 3px rgba(245,158,11,0.15); }
+.route-connector {
+  width: 1px; height: 16px;
+  background: linear-gradient(to bottom, var(--accent), var(--accent3));
+  opacity: 0.25; margin: 2px 0;
+}
+.route-text { flex: 1; }
+.route-label { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text2); }
+.route-addr { font-size: 12px; font-weight: 500; margin-top: 1px; color: var(--text); }
+.route-dist { font-family: var(--mono); font-size: 10px; color: var(--text2); }
+
+/* Card meta */
+.oc-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.oc-meta-chip {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 11px; color: var(--text2);
+  background: var(--s3); border-radius: 6px; padding: 4px 9px;
+}
+.oc-meta-chip span { font-family: var(--mono); color: var(--text); font-weight: 500; }
+
+/* Card actions */
+.oc-actions { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }
+.btn-decline {
+  padding: 11px; border-radius: var(--r-sm); border: 1px solid var(--border2);
+  background: none; color: var(--text2); cursor: pointer; font-size: 13px; font-weight: 500;
+  transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.btn-decline:hover { border-color: var(--danger); color: var(--danger); background: var(--ddim); }
+
+.btn-accept {
+  padding: 11px; border-radius: var(--r-sm); border: none;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: var(--bg); cursor: pointer; font-size: 13px; font-weight: 700;
+  font-family: 'Syne', sans-serif; letter-spacing: 0.02em;
+  transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-accept:hover { opacity: 0.85; transform: scale(0.99); }
+
+/* Active ride card */
+.active-ride-card {
+  background: var(--s1);
+  border: 1px solid rgba(59,130,246,0.3);
+  border-radius: var(--r); padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 0 0 1px rgba(59,130,246,0.08), 0 4px 24px rgba(59,130,246,0.06);
+  cursor: pointer;
+}
+.arc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.arc-status {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+  padding: 4px 10px; border-radius: 20px;
+  background: var(--a2dim); color: var(--accent2);
+  border: 1px solid rgba(59,130,246,0.25);
+}
+.arc-steps { display: flex; gap: 0; margin-bottom: 14px; }
+.arc-step {
+  flex: 1; text-align: center; padding: 10px 6px;
+  border-bottom: 2px solid var(--border); cursor: pointer;
+  transition: all 0.2s; font-size: 11px; color: var(--text2);
+}
+.arc-step.done { border-color: var(--accent); color: var(--accent); }
+.arc-step.current { border-color: var(--accent2); color: var(--accent2); font-weight: 600; }
+.arc-step-icon { font-size: 18px; margin-bottom: 4px; }
+
+.btn-complete {
+  width: 100%; padding: 13px; border-radius: var(--r-sm); border: none;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: var(--bg); cursor: pointer;
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 0.02em;
+  transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-complete:hover { opacity: 0.85; transform: scale(0.99); }
+
+/* Empty state */
+.feed-empty {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 12px; color: var(--muted); text-align: center;
+  padding: 40px;
+}
+.feed-empty-icon { font-size: 48px; opacity: 0.3; }
+.feed-empty-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--text2); }
+.feed-empty-sub { font-size: 13px; }
+
+/* ============================================
+   RIGHT SIDEBAR — Customer Detail & Chat
+============================================ */
+.sidebar-right {
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+
+.sr-header {
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.sr-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--text2); }
+
+/* Customer detail panel */
+.customer-panel { flex: 1; overflow-y: auto; padding: 16px 18px; }
+
+.customer-profile {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px; border-radius: var(--r);
+  background: var(--s2); border: 1px solid var(--border2);
+  margin-bottom: 14px;
+}
+.cust-avatar {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent3), var(--accent));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 700; color: var(--bg); flex-shrink: 0;
+}
+.cust-name { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; }
+.cust-meta { font-size: 11px; color: var(--text2); margin-top: 3px; }
+.cust-rating { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--accent3); margin-top: 4px; }
+
+/* Detail rows */
+.detail-section { margin-bottom: 16px; }
+.detail-section-title {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 10px;
+}
+.detail-row {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 9px 0; border-bottom: 1px solid var(--border);
+  font-size: 12px; gap: 12px;
+}
+.detail-row:last-child { border-bottom: none; }
+.dr-label { color: var(--text2); flex-shrink: 0; }
+.dr-val { font-weight: 500; text-align: right; }
+.dr-val.mono { font-family: var(--mono); font-size: 11px; }
+.dr-val.green { color: var(--accent); }
+.dr-val.amber { color: var(--accent3); }
+.dr-val.blue  { color: var(--accent2); }
+
+/* Map placeholder */
+.mini-map {
+  border-radius: var(--r-sm); overflow: hidden;
+  background: var(--s3); border: 1px solid var(--border);
+  height: 140px; position: relative; margin-bottom: 14px;
+  display: flex; align-items: center; justify-content: center;
+}
+.mini-map-bg {
+  position: absolute; inset: 0;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(110,231,183,0.03) 20px, rgba(110,231,183,0.03) 21px),
+    repeating-linear-gradient(90deg, transparent, transparent 20px, rgba(110,231,183,0.03) 20px, rgba(110,231,183,0.03) 21px);
+}
+.mini-map-route {
+  position: absolute; inset: 0;
+}
+.mini-map-label {
+  position: relative; z-index: 2;
+  font-size: 11px; color: var(--text2); text-align: center;
+  background: var(--s2); border: 1px solid var(--border); border-radius: 6px;
+  padding: 6px 12px;
+}
+
+/* Contact buttons */
+.contact-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.contact-btn {
+  padding: 10px; border-radius: var(--r-sm);
+  border: 1px solid var(--border2); background: var(--s2);
+  color: var(--text); cursor: pointer; font-size: 12px; font-weight: 500;
+  transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.contact-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--adim); }
+
+/* Chat panel */
+.chat-panel {
+  flex: 1; display: flex; flex-direction: column;
+  overflow: hidden; border-top: 1px solid var(--border);
+  padding: 0;
+}
+
+.chat-messages-container {
+  flex: 1; overflow-y: auto;
+  padding: 12px 14px; display: flex; flex-direction: column;
+  gap: 8px; scroll-behavior: smooth;
+}
+
+.chat-message {
+  display: flex; flex-direction: column;
+  align-items: flex-start; gap: 3px;
+  animation: fadeInUp 0.25s ease;
+}
+
+.chat-message.own {
+  align-items: flex-end;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.chat-bubble {
+  max-width: 75%; padding: 9px 14px;
+  border-radius: 12px;
+  background: var(--s2); border: 1px solid var(--border);
+  color: var(--text); font-size: 12px; font-weight: 500;
+  line-height: 1.4; word-wrap: break-word;
+}
+
+.chat-message.own .chat-bubble {
+  background: linear-gradient(135deg, rgba(110,231,183,0.15), rgba(59,130,246,0.15));
+  border: 1px solid rgba(110,231,183,0.18);
+  border-radius: 12px 12px 2px 12px;
+  text-align: right;
+}
+
+.chat-bubble.sender-label {
+  font-size: 10px; color: var(--text2);
+  display: block; margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.chat-time {
+  font-size: 10px; color: var(--muted);
+  margin: 0 4px;
+}
+
+.chat-input-area {
+  padding: 10px 12px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  display: flex; gap: 6px;
+  flex-shrink: 0;
+}
+
+.chat-input-area input {
+  flex: 1; background: var(--s2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 11px; color: var(--text);
+  font-size: 12px; outline: none; transition: border-color 0.2s;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.chat-input-area input:focus {
+  border-color: rgba(110,231,183,0.35);
+}
+
+.chat-input-area button {
+  padding: 8px 12px; background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none; border-radius: 8px; color: var(--bg);
+  font-weight: 700; cursor: pointer; font-size: 12px;
+  transition: opacity 0.2s; flex-shrink: 0;
+}
+
+.chat-input-area button:hover {
+  opacity: 0.85;
+}
+
+/* Quick replies */
+.quick-replies {
+  display: flex; gap: 5px; flex-wrap: wrap;
+  padding: 8px 12px 4px;
+  border-top: 1px solid var(--border);
+}
+
+.quick-reply-btn {
+  padding: 4px 10px; border-radius: 14px;
+  border: 1px solid var(--border2); background: var(--s2);
+  color: var(--text2); font-size: 10px; cursor: pointer;
+  white-space: nowrap; transition: all 0.2s;
+}
+
+.quick-reply-btn:hover {
+  border-color: var(--accent); color: var(--accent);
+  background: var(--adim);
+}
+
+/* No selection state */
+.no-selection {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 28px 18px; text-align: center; gap: 10px;
+}
+.no-sel-icon { font-size: 36px; opacity: 0.25; }
+.no-sel-text { font-size: 12px; color: var(--muted); }
+
+/* ============================================
+   MODALS
+============================================ */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(10px);
+  align-items: center; justify-content: center;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--s2); border: 1px solid var(--border2);
+  border-radius: 20px; padding: 28px; width: 90%; max-width: 380px;
+  animation: popIn 0.28s cubic-bezier(.34,1.4,.64,1);
+}
+@keyframes popIn { from{opacity:0;transform:scale(0.88);} to{opacity:1;transform:scale(1);} }
+
+.modal-icon { font-size: 40px; text-align: center; margin-bottom: 12px; }
+.modal-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; text-align: center; margin-bottom: 5px; }
+.modal-sub { font-size: 13px; color: var(--text2); text-align: center; margin-bottom: 20px; }
+.modal-detail {
+  background: var(--s3); border-radius: var(--r-sm); padding: 12px;
+  margin-bottom: 18px; display: flex; flex-direction: column; gap: 8px;
+}
+.md-row { display: flex; justify-content: space-between; font-size: 12px; }
+.md-row .ml { color: var(--text2); }
+.md-row .mv { font-weight: 500; }
+
+.modal-btn {
+  width: 100%; padding: 13px; border-radius: var(--r-sm); border: none; cursor: pointer;
+  font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.02em;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: var(--bg); transition: opacity 0.2s;
+}
+.modal-btn:hover { opacity: 0.85; }
+.modal-btn-out {
+  width: 100%; padding: 11px; margin-top: 8px;
+  border-radius: var(--r-sm); border: 1px solid var(--border);
+  background: none; color: var(--text2); cursor: pointer; font-size: 13px; transition: all 0.2s;
+}
+.modal-btn-out:hover { border-color: var(--text); color: var(--text); }
+
+/* ============================================
+   TOAST
+============================================ */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--s2); border: 1px solid var(--border2);
+  padding: 10px 18px; border-radius: 40px; font-size: 12px;
+  z-index: 300; display: none; align-items: center; gap: 8px;
+  white-space: nowrap; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+.toast.show { display: flex; animation: toastUp 0.3s ease; }
+@keyframes toastUp { from{opacity:0;transform:translateX(-50%) translateY(8px);} to{opacity:1;transform:translateX(-50%) translateY(0);} }
+
+/* ============================================
+   ORDER ALERT
+============================================ */
+.order-alert {
+  position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+  background: var(--s2); border: 1px solid rgba(110,231,183,0.4);
+  border-radius: 14px; padding: 14px 20px;
+  display: none; align-items: center; gap: 14px;
+  z-index: 150; min-width: 320px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(110,231,183,0.1);
+  animation: alertDrop 0.35s cubic-bezier(.34,1.3,.64,1);
+}
+.order-alert.show { display: flex; }
+@keyframes alertDrop { from{opacity:0;transform:translateX(-50%) translateY(-20px);} to{opacity:1;transform:translateX(-50%) translateY(0);} }
+.alert-pulse {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  background: var(--adim); border: 2px solid var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; animation: alertPulse 1s ease-in-out infinite;
+}
+@keyframes alertPulse { 0%,100%{box-shadow:0 0 0 0 rgba(110,231,183,0.4);} 50%{box-shadow:0 0 0 8px rgba(110,231,183,0);} }
+.alert-text { flex: 1; }
+.alert-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; }
+.alert-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.alert-close { color: var(--muted); cursor: pointer; font-size: 16px; padding: 4px; }
+.alert-close:hover { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="bg-mesh"></div>
+
+<!-- ===== LOADING SCREEN ===== -->
+<div id="driverLoading" style="position:fixed;inset:0;z-index:600;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+  <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;display:flex;align-items:center;gap:10px;">
+    <div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;">🛵</div>
+    RideFlow <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:var(--a3dim);color:var(--accent3);border:1px solid rgba(245,158,11,0.2);">DRIVER</span>
+  </div>
+  <div style="width:120px;height:3px;background:var(--s2);border-radius:3px;overflow:hidden;">
+    <div style="height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px;animation:loadbar 1.4s ease-in-out infinite;"></div>
+  </div>
+  <style>@keyframes loadbar{0%{width:0;margin-left:0;}50%{width:100%;margin-left:0;}100%{width:0;margin-left:100%;}}</style>
+</div>
+
+<!-- ===== AUTH GATE ===== -->
+<div id="driverAuthGate" style="display:none;position:fixed;inset:0;z-index:500;background:var(--bg);align-items:center;justify-content:center;flex-direction:column;">
+  <div style="width:100%;max-width:400px;padding:20px;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:10px;">
+        <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:18px;">🛵</div>
+        RideFlow
+        <span style="font-size:11px;padding:3px 8px;border-radius:5px;background:var(--a3dim);color:var(--accent3);border:1px solid rgba(245,158,11,0.2);">DRIVER</span>
+      </div>
+      <div style="color:var(--text2);font-size:13px;margin-top:8px;">Sign in to your driver account</div>
+    </div>
+
+    <div style="background:var(--s1);border:1px solid var(--border2);border-radius:20px;padding:26px;">
+      <div style="display:flex;background:var(--s2);border-radius:10px;padding:3px;margin-bottom:22px;">
+        <button id="dAuthTabLogin" onclick="dSwitchTab('login')" style="flex:1;padding:8px;border-radius:8px;border:none;background:var(--s3);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;">Sign In</button>
+        <button id="dAuthTabReg" onclick="dSwitchTab('register')" style="flex:1;padding:8px;border-radius:8px;border:none;background:none;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;">Register</button>
+      </div>
+
+      <div id="dLoginForm">
+        <div style="margin-bottom:12px;">
+          <label style="font-size:10px;font-weight:700;letter-spacing:0.1em;color:var(--text2);display:block;margin-bottom:6px;">EMAIL</label>
+          <input id="dLoginEmail" type="email" placeholder="driver@example.com" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:11px 14px;color:var(--text);font-size:13px;outline:none;" onfocus="this.style.borderColor='rgba(110,231,183,0.35)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter')dLogin()">
+        </div>
+        <div style="margin-bottom:16px;">
+          <label style="font-size:10px;font-weight:700;letter-spacing:0.1em;color:var(--text2);display:block;margin-bottom:6px;">PASSWORD</label>
+          <input id="dLoginPass" type="password" placeholder="••••••••" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:11px 14px;color:var(--text);font-size:13px;outline:none;" onfocus="this.style.borderColor='rgba(110,231,183,0.35)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter')dLogin()">
+        </div>
+        <div id="dLoginError" style="font-size:11px;color:var(--danger);margin-bottom:10px;display:none;"></div>
+        <button id="dLoginBtn" onclick="dLogin()" style="width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--bg);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:0.02em;">Sign In</button>
+        <button onclick="dDemoMode()" style="width:100%;padding:11px;margin-top:8px;border-radius:10px;border:1px solid var(--border);background:none;color:var(--text2);font-size:12px;cursor:pointer;">Continue as Demo Driver</button>
+      </div>
+
+      <div id="dRegForm" style="display:none;">
+        <div style="margin-bottom:10px;">
+          <label style="font-size:10px;font-weight:700;letter-spacing:0.1em;color:var(--text2);display:block;margin-bottom:6px;">FULL NAME</label>
+          <input id="dRegName" type="text" placeholder="Ahmad Fauzi" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:11px 14px;color:var(--text);font-size:13px;outline:none;" onfocus="this.style.borderColor='rgba(110,231,183,0.35)'" onblur="this.style.borderColor='var(--border)'">
+        </div>
+        <div style="margin-bottom:10px;">
+          <label style="font-size:10px;font-weight:700;letter-spacing:0.1em;color:var(--text2);display:block;margin-bottom:6px;">VEHICLE (Plate)</label>
+          <input id="dRegPlate" type="text" placeholder="B 4521 XYZ" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:11px 14px;color:var(--text);font-size:13px;outline:none;font-family:'JetBrains Mono',monospace;" onfocus="this.style.borderColor='rgba(110,231,183,0.35)'" onblur="this.style.borderColor='var(--border)'">
+        </div>
+        <div style="margin-bottom:10px;">
+          <label style="font-size:10px;font-weight:700;letter-spacing:0.1em;color:var(--text2);display:block;margin-bottom:6px;">EMAIL</label>
+          <input id="dRegEmail" type="email" placeholder="driver@example.com" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:11px 14px;color:var(--text);font-size:13px;outline:none;" onfocus="this.style.borderColor='rgba(110,231,183,0.35)'" onblur="this.style.borderColor='var(--border)'">
+        </div>
+        <div style="margin-bottom:16px;">
+          <label style="font-size:10px;font-weight:700;letter-spacing:0.1em;color:var(--text2);display:block;margin-bottom:6px;">PASSWORD</label>
+          <input id="dRegPass" type="password" placeholder="min 6 characters" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:11px 14px;color:var(--text);font-size:13px;outline:none;" onfocus="this.style.borderColor='rgba(110,231,183,0.35)'" onblur="this.style.borderColor='var(--border)'">
+        </div>
+        <div id="dRegError" style="font-size:11px;color:var(--danger);margin-bottom:10px;display:none;"></div>
+        <button id="dRegBtn" onclick="dRegister()" style="width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--bg);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Create Driver Account</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TOPBAR ===== -->
+<div class="topbar" id="driverApp" style="display:none;">
+  <div class="tb-left">
+    <div class="logo">
+      <div class="logo-icon">🛵</div>
+      RideFlow
+      <span class="logo-tag">Driver</span>
+    </div>
+    <div class="online-toggle" id="onlineToggle" onclick="toggleOnline()">
+      <div class="toggle-dot" id="toggleDot">●</div>
+      <span class="toggle-label" id="toggleLabel">Offline</span>
+    </div>
+  </div>
+  <div class="tb-right">
+    <div class="notif-btn" onclick="showToast('🔔 No new notifications')">
+      🔔
+      <div class="notif-badge" id="notifBadge">3</div>
+    </div>
+    <div class="driver-chip">
+      <div class="driver-avatar" id="driverAvatarTop">A</div>
+      <div>
+        <div class="driver-name-sm" id="driverNameTop">Ahmad Fauzi</div>
+        <div class="driver-plate-sm" id="driverPlateSm">B 4521 XYZ</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MAIN BODY ===== -->
+<div class="app-body" id="driverAppBody" style="display:none;">
+
+  <!-- ===== LEFT SIDEBAR ===== -->
+  <div class="sidebar-left">
+    <div class="earnings-hero">
+      <div class="eh-label">Today's Earnings</div>
+      <div class="eh-amount" id="todayEarnings">Rp 0</div>
+      <div class="eh-sub" id="earningsSub">0 trips completed today</div>
+      <div class="eh-progress">
+        <div class="eh-prog-label">
+          <span>Daily Target</span>
+          <span id="targetPct">0%</span>
+        </div>
+        <div class="eh-prog-track">
+          <div class="eh-prog-fill" id="earningsBar" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">🏍</div>
+        <div class="stat-val" id="statTrips">0</div>
+        <div class="stat-label">Trips Today</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⭐</div>
+        <div class="stat-val" id="statRating">4.92</div>
+        <div class="stat-label">Rating</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📏</div>
+        <div class="stat-val" id="statKm">0 km</div>
+        <div class="stat-label">Distance</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⏱</div>
+        <div class="stat-val" id="statOnline">00:00</div>
+        <div class="stat-label">Online Time</div>
+      </div>
+    </div>
+
+    <div class="sec-label">Recent Activity</div>
+    <div id="recentList">
+      <div style="padding:20px 0; font-size:12px; color:var(--muted); text-align:center;">No activity yet today</div>
+    </div>
+  </div>
+
+  <!-- ===== CENTER PANEL ===== -->
+  <div class="center-panel">
+    <div class="center-header">
+      <div class="center-title">
+        Order Feed
+        <div class="live-badge"><div class="live-dot"></div> LIVE</div>
+      </div>
+      <div class="center-filters">
+        <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+        <button class="filter-btn" onclick="setFilter('ride',this)">🛵 Ride</button>
+        <button class="filter-btn" onclick="setFilter('car',this)">🚗 Car</button>
+        <button class="filter-btn" onclick="setFilter('delivery',this)">📦 Delivery</button>
+      </div>
+    </div>
+
+    <div class="order-feed" id="orderFeed">
+      <div class="feed-empty" id="feedEmpty">
+        <div class="feed-empty-icon">📡</div>
+        <div class="feed-empty-title">Go Online to Receive Orders</div>
+        <div class="feed-empty-sub">Toggle the switch above to start accepting rides</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== RIGHT SIDEBAR ===== -->
+  <div class="sidebar-right">
+    <div class="sr-header">
+      <div class="sr-title">Customer & Trip Detail</div>
+    </div>
+
+    <div id="rightContent">
+      <div class="no-selection">
+        <div class="no-sel-icon">👆</div>
+        <div class="no-sel-text">Select an order to see customer details and chat</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== MODALS ===== -->
+<div class="modal-overlay" id="acceptModal">
+  <div class="modal">
+    <div class="modal-icon">🚀</div>
+    <div class="modal-title">Accept this Order?</div>
+    <div class="modal-sub" id="acceptModalSub">You'll be navigated to the pickup point</div>
+    <div class="modal-detail" id="acceptModalDetail"></div>
+    <button class="modal-btn" onclick="confirmAccept()">✓ Accept Order</button>
+    <button class="modal-btn-out" onclick="closeModal('acceptModal')">Cancel</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="cancelRideModal">
+  <div class="modal">
+    <div class="modal-icon">⚠️</div>
+    <div class="modal-title">Batalkan Order?</div>
+    <div class="modal-sub" id="cancelRideModalSub">Customer sudah menunggumu. Yakin ingin membatalkan?</div>
+    <div id="cancelRideDetail" style="margin:12px 0;"></div>
+    <button class="modal-btn" style="background:linear-gradient(135deg,var(--danger),#f87171);" onclick="confirmCancelRide()">Ya, Batalkan</button>
+    <button class="modal-btn-out" onclick="closeModal('cancelRideModal')">Tidak, Lanjutkan</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="completeModal">
+  <div class="modal">
+    <div class="modal-icon">🎉</div>
+    <div class="modal-title">Complete This Trip?</div>
+    <div class="modal-sub">Confirm the passenger has arrived safely</div>
+    <div class="modal-detail" id="completeModalDetail"></div>
+    <button class="modal-btn" onclick="confirmComplete()">��� Trip Completed</button>
+    <button class="modal-btn-out" onclick="closeModal('completeModal')">Back</button>
+  </div>
+</div>
+
+<div class="order-alert" id="orderAlert">
+  <div class="alert-pulse">📦</div>
+  <div class="alert-text">
+    <div class="alert-title" id="alertTitle">New Order Incoming!</div>
+    <div class="alert-sub" id="alertSub">Tap the card to view details</div>
+  </div>
+  <div class="alert-close" onclick="closeAlert()">✕</div>
+</div>
+
+<div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+<!-- ===== FIREBASE + APP SCRIPT ===== -->
+<script type="module">
+import { initializeApp }    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword,
+         signInWithEmailAndPassword, signOut,
+         onAuthStateChanged, updateProfile }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, doc,
+         setDoc, getDoc, updateDoc, query, where,
+         orderBy, onSnapshot, serverTimestamp }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDSVnNtzby_0n0OMQEpRV0Cpye1b371LNs",
+  authDomain: "rideflow-app-a9953.firebaseapp.com",
+  projectId: "rideflow-app-a9953",
+  storageBucket: "rideflow-app-a9953.firebasestorage.app",
+  messagingSenderId: "763385025754",
+  appId: "1:763385025754:web:6a782f197a826c5080c1e3",
+  measurementId: "G-YKS9VLS8GY" 
+};
+
+let auth, db, FB = false;
+try {
+  const app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db   = getFirestore(app);
+  FB   = true;
+  window.addDoc = addDoc;
+  window.collection = collection;
+  window.onSnapshot = onSnapshot;
+  window.orderBy = orderBy;
+  window.query = query;
+  window.serverTimestamp = serverTimestamp;
+  window.db = db;
+} catch(e) { console.warn("⚠️ Demo mode:", e.message); }
+
+let DRIVER = {
+  uid: null, name: 'Demo Driver', plate: 'B 0000 DMO',
+  vehicle: 'Honda Vario 125', rating: 4.90, avatar: 'D',
+  target: 500000, isDemo: true,
+};
+
+const state = {
+  online: false, onlineStart: null, onlineTimer: null,
+  localOrders: [], activeRide: null,
+  selectedOrder: null, pendingAccept: null, filter: 'all',
+  stats: { trips: 0, earnings: 0, km: 0 },
+  completedRides: [], unsubOrders: null, unsubChat: null,
+  chatUnread: 0,
+};
+
+// ─────────────────────────────────────────────
+//  REAL-TIME CHAT SYSTEM
+// ─────────────────────────────────────────────
+const messageStore = {};
+const listeners = {};
+
+function broadcastMessage(orderId, message) {
+  if (!messageStore[orderId]) messageStore[orderId] = [];
+  messageStore[orderId].push(message);
+  try {
+    const key = `rideflow_chat_${orderId}`;
+    const existing = JSON.parse(localStorage.getItem(key) || '[]');
+    existing.push({ ...message, _stored: true });
+    localStorage.setItem(key, JSON.stringify(existing.slice(-100)));
+  } catch (e) {}
+  notifyListeners(orderId, message);
+}
+
+function notifyListeners(orderId, message) {
+  if (listeners[orderId]) {
+    listeners[orderId].forEach(cb => {
+      try { cb(message); } catch (e) {}
+    });
+  }
+}
+
+const RideFlowChat = {
+  init(orderId, userRole, callbacks = {}) {
+    const { onMessage } = callbacks;
+    try {
+      const key = `rideflow_chat_${orderId}`;
+      const stored = JSON.parse(localStorage.getItem(key) || '[]');
+      if (stored.length > 0 && onMessage) {
+        stored.forEach(msg => onMessage(msg));
+      }
+    } catch (e) {}
+
+    let unsubFirebase = null;
+    if (FB && window.addDoc && window.collection && window.onSnapshot && window.orderBy && window.query) {
+      try {
+        const q = query(
+          collection(window.db, 'chats', orderId, 'messages'),
+          orderBy('timestamp', 'asc')
+        );
+        unsubFirebase = onSnapshot(q, (snap) => {
+          snap.docChanges().forEach(change => {
+            if (change.type === 'added') {
+              const message = change.data();
+              broadcastMessage(orderId, message);
+              if (onMessage) onMessage(message);
+            }
+          });
+        });
+      } catch (e) {
+        console.warn('Firebase subscribe failed:', e);
+      }
+    }
+
+    if (!listeners[orderId]) listeners[orderId] = [];
+    listeners[orderId].push(onMessage || (() => {}));
+
+    const handleStorageChange = (e) => {
+      if (e.key === `rideflow_chat_${orderId}`) {
+        try {
+          const msgs = JSON.parse(e.newValue || '[]');
+          const lastMsg = msgs[msgs.length - 1];
+          if (lastMsg && onMessage) {
+            onMessage(lastMsg);
+          }
+        } catch (e) {}
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      if (unsubFirebase) unsubFirebase();
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  },
+
+  async sendMessage(orderId, text, senderRole, senderName) {
+    if (!text.trim()) return;
+
+    const message = {
+      id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      text: text.trim(),
+      sender: senderRole,
+      senderName: senderName || (senderRole === 'driver' ? 'Driver' : 'Customer'),
+      timestamp: new Date().toISOString(),
+    };
+
+    if (FB && window.addDoc && window.collection && window.serverTimestamp) {
+      try {
+        await addDoc(collection(window.db, 'chats', orderId, 'messages'), {
+          ...message,
+          timestamp: serverTimestamp(),
+        });
+      } catch (e) {}
+    }
+
+    broadcastMessage(orderId, message);
+  },
+
+  getMessages(orderId) {
+    return messageStore[orderId] || [];
+  },
+
+  clearMessages(orderId) {
+    messageStore[orderId] = [];
+    try { localStorage.removeItem(`rideflow_chat_${orderId}`); } catch (e) {}
+  },
+};
+
+let activeChatOrderId = null;
+let activeChatRole = null;
+let unsubscribeChat = null;
+
+function initRideChat(orderId, userRole, userName) {
+  activeChatOrderId = orderId;
+  activeChatRole = userRole;
+
+  const messagesEl = document.getElementById('driverChatMessages');
+  if (messagesEl) {
+    messagesEl.innerHTML = '<div style="text-align:center;font-size:11px;color:var(--muted);padding:8px 0;">Chat started - Waiting for customer message</div>';
+  }
+
+  if (unsubscribeChat) unsubscribeChat();
+  unsubscribeChat = RideFlowChat.init(orderId, userRole, {
+    onMessage: (msg) => appendChatMessage(msg),
+  });
+
+  renderQuickReplies();
+}
+
+function appendChatMessage(msg) {
+  const containerEl = document.getElementById('driverChatMessages');
+  if (!containerEl) return;
+
+  const isOwn = msg.sender === activeChatRole;
+  const timeStr = new Date(msg.timestamp).toLocaleTimeString('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  const msgDiv = document.createElement('div');
+  msgDiv.className = `chat-message ${isOwn ? 'own' : ''}`;
+
+  const bubbleDiv = document.createElement('div');
+  bubbleDiv.className = 'chat-bubble';
+  bubbleDiv.textContent = msg.text;
+
+  const timeDiv = document.createElement('div');
+  timeDiv.className = 'chat-time';
+  timeDiv.textContent = timeStr;
+
+  msgDiv.appendChild(bubbleDiv);
+  msgDiv.appendChild(timeDiv);
+
+  containerEl.appendChild(msgDiv);
+  containerEl.scrollTop = containerEl.scrollHeight;
+}
+
+async function sendDriverChat() {
+  const input = document.getElementById('driverChatInput');
+  const text = input?.value.trim();
+  if (!text || !activeChatOrderId) return;
+
+  input.value = '';
+
+  await RideFlowChat.sendMessage(
+    activeChatOrderId,
+    text,
+    'driver',
+    DRIVER.name || 'Driver'
+  );
+}
+
+function renderQuickReplies() {
+  const container = document.getElementById('driverQuickReplies');
+  if (!container) return;
+
+  const replies = [
+    'Saya sudah dalam perjalanan 🏍',
+    'Hampir sampai! 5 menit lagi ⏱',
+    'Saya sudah di depan 📍',
+    'Baik, mengerti 👍',
+  ];
+
+  container.innerHTML = replies
+    .map(
+      (reply) => `
+        <button class="quick-reply-btn" onclick="sendDriverChatQuickReply('${reply.replace(/'/g, "\\'")}')">${reply}</button>
+      `
+    )
+    .join('');
+}
+
+function sendDriverChatQuickReply(text) {
+  document.getElementById('driverChatInput').value = text;
+  sendDriverChat();
+}
+
+function stopRideChat() {
+  if (unsubscribeChat) {
+    unsubscribeChat();
+    unsubscribeChat = null;
+  }
+  activeChatOrderId = null;
+}
+
+// ─────────────────────────────────────────────
+//  AUTH FUNCTIONS
+// ─────────────────────────────────────────────
+const _demoUsers   = {};
+const _demoDrivers = {};
+function getDemoDrivers() { return _demoDrivers; }
+
+async function dLogin() {
+  const email = document.getElementById('dLoginEmail').value.trim();
+  const pass  = document.getElementById('dLoginPass').value;
+  const errEl = document.getElementById('dLoginError');
+  const btn   = document.getElementById('dLoginBtn');
+  if (!email || !pass) { showAuthError(errEl, 'Isi semua field'); return; }
+  errEl.style.display = 'none';
+  btn.textContent = 'Masuk...'; btn.disabled = true;
+
+  if (FB) {
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+    } catch(e) {
+      showAuthError(errEl, friendlyErr(e.code));
+      btn.textContent = 'Masuk'; btn.disabled = false;
+    }
+    return;
+  }
+
+  const drivers = getDemoDrivers();
+  const driver  = drivers[email.toLowerCase()];
+  if (!driver) { showAuthError(errEl, 'Akun tidak ditemukan.'); btn.textContent = 'Masuk'; btn.disabled = false; return; }
+  if (driver.password !== pass) { showAuthError(errEl, 'Password salah.'); btn.textContent = 'Masuk'; btn.disabled = false; return; }
+
+  DRIVER = { uid: driver.uid, name: driver.name, plate: driver.plate, vehicle: driver.vehicle || 'Honda Vario 125',
+             rating: driver.rating || 5.0, avatar: driver.name.charAt(0).toUpperCase(), target: 500000, isDemo: false };
+  showApp();
+}
+
+async function dRegister() {
+  const name = document.getElementById('dRegName').value.trim();
+  const plate = document.getElementById('dRegPlate').value.trim().toUpperCase();
+  const email = document.getElementById('dRegEmail').value.trim();
+  const pass = document.getElementById('dRegPass').value;
+  const errEl = document.getElementById('dRegError');
+  const btn = document.getElementById('dRegBtn');
+
+  if (!name || !plate || !email || !pass) {
+    showAuthError(errEl, 'Please fill in all fields');
+    return;
+  }
+
+  if (pass.length < 6) {
+    showAuthError(errEl, 'Password must be at least 6 characters');
+    return;
+  }
+
+  errEl.classList.remove('show');
+  btn.textContent = 'Creating account...';
+  btn.disabled = true;
+
+  try {
+    if (!FB) throw new Error('Firebase not configured');
+
+    const userCred = await createUserWithEmailAndPassword(auth, email, pass);
+    await updateProfile(userCred.user, { displayName: name });
+
+    await setDoc(doc(db, 'drivers', userCred.user.uid), {
+      uid: userCred.user.uid,
+      name: name,
+      plate: plate,
+      email: email,
+      vehicle: 'Honda Vario 125',
+      rating: 5.0,
+      totalTrips: 0,
+      totalEarnings: 0,
+      createdAt: serverTimestamp(),
+    });
+
+    console.log('✅ Driver register successful:', userCred.user.uid);
+
+    DRIVER = {
+      uid: userCred.user.uid,
+      name: name,
+      plate: plate,
+      vehicle: 'Honda Vario 125',
+      rating: 5.0,
+      avatar: name.charAt(0).toUpperCase(),
+      isDemo: false,
+    };
+
+    showApp();
+
+  } catch(e) {
+    console.error('Register error:', e);
+    showAuthError(errEl, friendlyAuthErr(e.code));
+    btn.textContent = 'Create Driver Account';
+    btn.disabled = false;
+  }
+}
+
+function dDemoMode() {
+  DRIVER = {
+    uid: 'demo_' + Date.now(),
+    name: 'Demo Driver',
+    plate: 'B 0000 DMO',
+    vehicle: 'Honda Vario 125',
+    rating: 5.0,
+    avatar: 'D',
+    isDemo: true,
+  };
+  showApp();
+}
+
+async function dSignOut() {
+  if (FB && !DRIVER.isDemo) await signOut(auth).catch(()=>{});
+  DRIVER = { uid:null, name:'Demo Driver', plate:'B 0000 DMO', vehicle:'Honda Vario 125', rating:4.90, avatar:'D', target:500000, isDemo:true };
+  hideApp();
+}
+
+function dSwitchTab(tab) {
+  const loginForm = document.getElementById('dLoginForm');
+  const regForm   = document.getElementById('dRegForm');
+  const tabLogin  = document.getElementById('dAuthTabLogin');
+  const tabReg    = document.getElementById('dAuthTabReg');
+  loginForm.style.display = tab === 'login' ? 'block' : 'none';
+  regForm.style.display   = tab === 'register' ? 'block' : 'none';
+  tabLogin.style.background = tab === 'login' ? 'var(--s3)' : 'none';
+  tabLogin.style.color      = tab === 'login' ? 'var(--text)' : 'var(--text2)';
+  tabReg.style.background   = tab === 'register' ? 'var(--s3)' : 'none';
+  tabReg.style.color        = tab === 'register' ? 'var(--text)' : 'var(--text2)';
+}
+
+function showAuthError(el, msg) { el.textContent = msg; el.style.display = 'block'; }
+
+function friendlyErr(code) {
+  return ({
+    'auth/user-not-found':       'Account not found.',
+    'auth/wrong-password':       'Incorrect password.',
+    'auth/invalid-credential':   'Incorrect email or password.',
+    'auth/email-already-in-use': 'Email already registered.',
+    'auth/weak-password':        'Password too weak.',
+  })[code] || 'Something went wrong.';
+}
+
+function friendlyAuthErr(code) {
+  return ({
+    'auth/user-not-found':       'Account not found.',
+    'auth/wrong-password':       'Incorrect password.',
+    'auth/invalid-credential':   'Incorrect email or password.',
+    'auth/email-already-in-use': 'Email already registered.',
+    'auth/weak-password':        'Password too weak.',
+  })[code] || 'Something went wrong.';
+}
+
+function showApp() {
+  document.getElementById('driverLoading').style.display = 'none';
+  document.getElementById('driverAuthGate').style.display = 'none';
+  document.getElementById('driverApp').style.display = 'flex';
+  document.getElementById('driverAppBody').style.display = 'grid';
+  updateDriverUI();
+  updateStats();
+  renderRecentActivity();
+}
+
+function hideApp() {
+  document.getElementById('driverApp').style.display = 'none';
+  document.getElementById('driverAppBody').style.display = 'none';
+  document.getElementById('driverAuthGate').style.display = 'flex';
+  if (state.online) toggleOnline();
+}
+
+function updateDriverUI() {
+  document.getElementById('driverNameTop').textContent   = DRIVER.name;
+  document.getElementById('driverPlateSm').textContent   = DRIVER.plate;
+  document.getElementById('driverAvatarTop').textContent = DRIVER.avatar;
+}
+
+// Firebase Auth State
+if (FB) {
+  onAuthStateChanged(auth, async (user) => {
+    document.getElementById('driverLoading').style.display = 'none';
+
+    if (user) {
+      try {
+        const driverSnap = await getDoc(doc(db, 'drivers', user.uid));
+        
+        if (!driverSnap.exists()) {
+          await signOut(auth);
+          hideApp();
+          showToast('❌ This account is not a driver account. Please register as driver.');
+          return;
+        }
+
+        const driverData = driverSnap.data();
+
+        DRIVER = {
+          uid: user.uid,
+          name: driverData.name || user.displayName || user.email.split('@')[0],
+          plate: driverData.plate || '—',
+          vehicle: driverData.vehicle || 'Honda Vario 125',
+          rating: driverData.rating || 5.0,
+          avatar: (driverData.name || user.displayName || 'D').charAt(0).toUpperCase(),
+          isDemo: false,
+        };
+
+        showApp();
+      } catch(e) {
+        console.error('Error loading driver profile:', e);
+        DRIVER = {
+          uid: user.uid,
+          name: user.displayName || 'Driver',
+          plate: '—',
+          vehicle: 'Honda Vario 125',
+          rating: 5.0,
+          avatar: 'D',
+          isDemo: false,
+        };
+        showApp();
+      }
+    } else {
+      hideApp();
+    }
+  });
+}
+else {
+  setTimeout(() => {
+    document.getElementById('driverLoading').style.display = 'none';
+    document.getElementById('driverAuthGate').style.display = 'flex';
+  }, 600);
+}
+
+// ─────────────────────────────────────────────
+//  DEMO ORDER TEMPLATES
+// ─────────────────────────────────────────────
+const DEMO_CUSTOMERS = [
+  { name:'Budi Santoso',  initial:'B', rating:4.8, trips:23 },
+  { name:'Siti Rahma',    initial:'S', rating:4.9, trips:41 },
+  { name:'Reza Pratama',  initial:'R', rating:4.7, trips:12 },
+  { name:'Diana Putri',   initial:'D', rating:5.0, trips:67 },
+  { name:'Kevin Alvaro',  initial:'K', rating:4.6, trips:8  },
+];
+const DEMO_ROUTES = [
+  { pickup:'Sudirman, Jakarta',  dest:'Grand Indonesia', km:3.2 },
+  { pickup:'Blok M, Jakarta',    dest:'Senayan City',    km:2.1 },
+  { pickup:'SCBD, Jakarta',      dest:'Kuningan City',   km:4.5 },
+  { pickup:'Kemang, Jakarta',    dest:'Pancoran',        km:5.8 },
+  { pickup:'Kelapa Gading',      dest:'Sunter',          km:3.9 },
+];
+const SERVICES = [
+  { type:'ride',     icon:'🛵', vehicle:'motor', tier:'standard', basePrice:12000, priceKm:2000 },
+  { type:'ride',     icon:'🚗', vehicle:'car',   tier:'premium',  basePrice:50000, priceKm:6000 },
+  { type:'delivery', icon:'📦', vehicle:'motor', tier:'standard', basePrice:10000, priceKm:2500 },
+  { type:'ride',     icon:'👑', vehicle:'motor', tier:'priority', basePrice:22000, priceKm:4500 },
+];
+
+function genDemoOrder() {
+  const cust    = DEMO_CUSTOMERS[Math.floor(Math.random() * DEMO_CUSTOMERS.length)];
+  const route   = DEMO_ROUTES[Math.floor(Math.random() * DEMO_ROUTES.length)];
+  const svc     = SERVICES[Math.floor(Math.random() * SERVICES.length)];
+  const platform = Math.random() > 0.5 ? 'gojek' : 'grab';
+  const fare    = Math.round((svc.basePrice + svc.priceKm * route.km) / 1000) * 1000;
+  return {
+    id: 'demo-' + Date.now() + '-' + Math.random().toString(36).slice(2,6),
+    customer: cust, pickup: route.pickup, destination: route.dest,
+    km: route.km, fare,
+    fareStr: `Rp ${fare.toLocaleString('id-ID')}`,
+    service: svc.type, vehicle: svc.vehicle,
+    tier: svc.tier, tierLabel: svc.tier.charAt(0).toUpperCase() + svc.tier.slice(1),
+    icon: svc.icon, platform, eta: Math.floor(3 + Math.random() * 7),
+    status: 'searching', timestamp: new Date(),
+  };
+}
+
+// ────────���────────────────────────────────────
+//  ONLINE TOGGLE
+// ─────────────────────────────────────────────
+function toggleOnline() {
+  state.online = !state.online;
+  const toggle = document.getElementById('onlineToggle');
+  const label  = document.getElementById('toggleLabel');
+  toggle.classList.toggle('online', state.online);
+  label.textContent = state.online ? 'Online' : 'Offline';
+
+  if (state.online) {
+    state.onlineStart = Date.now();
+    state.onlineTimer = setInterval(updateOnlineTime, 1000);
+    _lastSeenOrderTs = Date.now();
+    startOrderSimulation();
+    subscribeFirestoreOrders();
+    showToast('🟢 Online — Siap menerima order!');
+    document.getElementById('feedEmpty').style.display = 'none';
+  } else {
+    clearInterval(state.onlineTimer);
+    stopOrderSimulation();
+    if (typeof state.unsubOrders === 'function') { state.unsubOrders(); }
+    else if (typeof state.unsubOrders === 'number') { clearInterval(state.unsubOrders); }
+    state.unsubOrders = null;
+    window.removeEventListener('storage', onStorageEvent);
+    showToast('⚫ Offline');
+    if (!state.activeRide && state.localOrders.length === 0) {
+      const empty = document.getElementById('feedEmpty');
+      if (empty) empty.style.display = 'flex';
+    }
+  }
+}
+
+function updateOnlineTime() {
+  if (!state.onlineStart) return;
+  const secs = Math.floor((Date.now() - state.onlineStart) / 1000);
+  document.getElementById('statOnline').textContent =
+    `${String(Math.floor(secs/60)).padStart(2,'0')}:${String(secs%60).padStart(2,'0')}`;
+}
+
+// ─────────────────────────────────────────────
+//  ORDER MANAGEMENT
+// ─────────────────────────────────────────────
+function subscribeFirestoreOrders() {
+  if (FB) {
+    const q = query(collection(db, 'orders'), where('status','==','searching'), orderBy('timestamp','desc'));
+    state.unsubOrders = onSnapshot(q, snap => {
+      snap.docChanges().forEach(change => {
+        if (change.type === 'added') {
+          const data = change.doc.data();
+          const order = mapFirestoreOrder(change.doc.id, data);
+          if (!state.localOrders.find(o => o.id === order.id)) {
+            state.localOrders.unshift(order);
+            renderFeed();
+            showOrderAlert(order);
+          }
+        }
+        if (change.type === 'modified') {
+          const data = change.doc.data();
+          if (data.status !== 'searching') {
+            state.localOrders = state.localOrders.filter(o => o.id !== change.doc.id);
+            renderFeed();
+          }
+        }
+      });
+    });
+  } else {
+    checkLocalStorageOrders();
+    state.unsubOrders = setInterval(checkLocalStorageOrders, 2000);
+  }
+}
+
+let _lastSeenOrderTs = 0;
+function checkLocalStorageOrders() {
+  const orders = window._sharedDemoOrders || [];
+  const newOrders = orders.filter(o =>
+    o.status === 'searching' &&
+    !state.localOrders.find(lo => lo.id === o.id) &&
+    new Date(o.timestamp).getTime() > _lastSeenOrderTs - 5000
+  );
+  newOrders.forEach(o => {
+    const mapped = mapLocalOrder(o);
+    state.localOrders.unshift(mapped);
+    renderFeed();
+    showOrderAlert(mapped);
+  });
+  if (newOrders.length) _lastSeenOrderTs = Date.now();
+
+  if (state.activeRide) {
+    const activeInStore = orders.find(o => o.id === state.activeRide.id);
+    if (activeInStore?.status === 'cancelled') {
+      showToast('❌ Customer cancelled the order');
+      state.activeRide = null;
+      renderFeed();
+    }
+  }
+}
+
+function mapFirestoreOrder(id, data) {
+  return {
+    id, fromFirestore: true,
+    customer: {
+      name:   data.customerName || (data.pickup||'').split(',')[0] + ' Customer',
+      initial: (data.customerName || 'C').charAt(0).toUpperCase(),
+      rating: data.customerRating || 4.8,
+      trips:  data.customerTrips  || 10,
+      uid:    data.customerUid    || '',
+    },
+    pickup:      data.pickup        || '—',
+    destination: data.destination   || '—',
+    km:          parseFloat(data.estimatedKm) || 5,
+    fare:        0,
+    fareStr:     data.estimatedFare || '—',
+    service:     data.service       || 'ride',
+    vehicle:     data.vehicle       || 'motor',
+    tier:        data.tier          || 'standard',
+    tierLabel:   cap(data.tier      || 'standard'),
+    icon:        data.vehicle === 'car' ? '🚗' : '🛵',
+    platform:    'gojek',
+    eta:         Math.floor(3 + Math.random() * 6),
+    status:      'searching',
+    timestamp:   new Date(),
+  };
+}
+
+function mapLocalOrder(o) {
+  return {
+    id:          o.id,
+    fromLocalStore: true,
+    customer: {
+      name:    o.customerName  || 'Customer',
+      initial: (o.customerName || 'C').charAt(0).toUpperCase(),
+      rating:  4.8,
+      trips:   Math.floor(5 + Math.random() * 40),
+      uid:     o.customerUid   || '',
+    },
+    pickup:      o.pickup       || '—',
+    destination: o.destination  || '—',
+    km:          parseFloat(o.estimatedKm) || 5,
+    fare:        0,
+    fareStr:     o.estimatedFare || '—',
+    service:     o.service      || 'ride',
+    vehicle:     o.vehicle      || 'motor',
+    tier:        o.tier         || 'standard',
+    tierLabel:   cap(o.tier     || 'standard'),
+    icon:        o.vehicle === 'car' ? '🚗' : '🛵',
+    platform:    ['gojek','grab'][Math.floor(Math.random()*2)],
+    eta:         Math.floor(3 + Math.random() * 7),
+    status:      'searching',
+    timestamp:   new Date(o.timestamp),
+  };
+}
+
+// ─────────────────────────────────────────────
+//  ORDER SIMULATION
+// ─────────────────────────────────────────────
+let simTimer = null;
+function startOrderSimulation() {
+  simTimer = setTimeout(() => {
+    addDemoOrder();
+    simTimer = setInterval(() => {
+      if (state.online && !state.activeRide) addDemoOrder();
+    }, 18000 + Math.random() * 15000);
+  }, 3000);
+}
+function stopOrderSimulation() { clearTimeout(simTimer); clearInterval(simTimer); }
+
+function addDemoOrder() {
+  const order = genDemoOrder();
+  state.localOrders.unshift(order);
+  renderFeed();
+  showOrderAlert(order);
+  setTimeout(() => {
+    if (state.localOrders.find(o => o.id === order.id && o.status === 'searching')) {
+      state.localOrders = state.localOrders.filter(o => o.id !== order.id);
+      renderFeed();
+      showToast('⏰ Order expired');
+    }
+  }, 30000);
+}
+
+// ─────────────────────────────────────────────
+//  RENDER FEED
+// ─────────────────────────────────────────────
+function renderFeed() {
+  const feed  = document.getElementById('orderFeed');
+  const empty = document.getElementById('feedEmpty');
+  let orders  = [...state.localOrders];
+
+  if (state.filter !== 'all') {
+    orders = orders.filter(o => {
+      if (state.filter === 'ride')     return o.service === 'ride' && o.vehicle === 'motor';
+      if (state.filter === 'car')      return o.vehicle === 'car';
+      if (state.filter === 'delivery') return o.service === 'delivery';
+      return true;
+    });
+  }
+
+  let html = '';
+  if (state.activeRide) html += renderActiveRideCard(state.activeRide);
+  if (orders.length === 0 && !state.activeRide) {
+    empty.style.display = 'flex'; feed.innerHTML = ''; feed.appendChild(empty); return;
+  }
+  empty.style.display = 'none';
+  feed.innerHTML = html + orders.filter(o => o.status === 'searching').map(renderOrderCard).join('');
+}
+
+function renderOrderCard(o) {
+  const platLabel = o.platform === 'gojek' ? 'GO' : 'GR';
+  const svcClass  = o.service === 'delivery' ? 'delivery' : 'ride';
+  const svcLabel  = o.service.charAt(0).toUpperCase() + o.service.slice(1);
+  return `
+    <div class="order-card incoming" id="card-${o.id}" onclick="selectOrder('${o.id}')">
+      <div class="urgency-bar timer"></div>
+      <div class="order-card-inner">
+        <div class="oc-header">
+          <div class="oc-left">
+            <div class="oc-platform ${o.platform}">${platLabel}</div>
+            <div>
+              <div class="oc-customer-name">${o.customer.name}</div>
+              <div class="oc-order-id">#${o.id.slice(-6).toUpperCase()}</div>
+            </div>
+          </div>
+          <div class="oc-right">
+            <div class="oc-fare">${o.fareStr}</div>
+            <div class="oc-tier">${o.tierLabel}</div>
+            <div class="oc-badge ${svcClass}">${o.icon} ${svcLabel}</div>
+          </div>
+        </div>
+        <div class="oc-route">
+          <div class="oc-route-item">
+            <div class="route-dot-wrap"><div class="route-dot pickup"></div><div class="route-connector"></div></div>
+            <div class="route-text">
+              <div class="route-label">Pickup</div>
+              <div class="route-addr">${o.pickup}</div>
+            </div>
+          </div>
+          <div class="oc-route-item">
+            <div class="route-dot-wrap"><div class="route-dot dest"></div></div>
+            <div class="route-text">
+              <div class="route-label">Drop-off</div>
+              <div class="route-addr">${o.destination}</div>
+            </div>
+          </div>
+        </div>
+        <div class="oc-meta">
+          <div class="oc-meta-chip">🚗 <span>${o.vehicle === 'car' ? 'Car' : 'Motor'}</span></div>
+          <div class="oc-meta-chip">📏 <span>${o.km.toFixed(1)} km</span></div>
+          <div class="oc-meta-chip">⏱ <span>${o.eta} min</span></div>
+          <div class="oc-meta-chip">⭐ <span>${o.customer.rating}</span></div>
+        </div>
+        <div class="oc-actions">
+          <button class="btn-decline" onclick="declineOrder(event,'${o.id}')">✕ Decline</button>
+          <button class="btn-accept"  onclick="openAcceptModal(event,'${o.id}')">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            Accept Order
+          </button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderActiveRideCard(o) {
+  const btnLabel = ['📍 Tiba di Pickup','🚗 Mulai Antar','🏁 Selesaikan Trip'][o.rideStep] || '✓ Done';
+  return `
+    <div class="active-ride-card" id="active-card" onclick="selectOrder('active')">
+      <div class="arc-header">
+        <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;">Active Ride</div>
+        <div class="arc-status">● IN PROGRESS</div>
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">
+        <strong style="color:var(--text)">${o.customer.name}</strong>
+        <span style="color:var(--muted);margin:0 4px;">·</span>
+        <span style="color:var(--accent3);">${o.pickup}</span>
+        <span style="color:var(--muted);margin:0 4px;">→</span>
+        <span>${o.destination}</span>
+      </div>
+      <div class="arc-steps">
+        <div class="arc-step done"><div class="arc-step-icon">✓</div><div>Diterima</div></div>
+        <div class="arc-step ${o.rideStep >= 1 ? 'done' : 'current'}"><div class="arc-step-icon">📍</div><div>Pickup</div></div>
+        <div class="arc-step ${o.rideStep >= 2 ? 'done' : (o.rideStep === 1 ? 'current' : '')}"><div class="arc-step-icon">🚗</div><div>Jalan</div></div>
+        <div class="arc-step ${o.rideStep >= 3 ? 'done' : (o.rideStep === 2 ? 'current' : '')}"><div class="arc-step-icon">🏁</div><div>Sampai</div></div>
+      </div>
+      <button class="btn-complete" onclick="event.stopPropagation();openCompleteModal()">${btnLabel}</button>
+      ${o.rideStep === 0 ? '<button onclick="event.stopPropagation();openCancelRideModal()" style="width:100%;padding:8px;margin-top:6px;border-radius:8px;border:1px solid var(--danger);background:none;color:var(--danger);font-size:12px;font-weight:600;cursor:pointer;">Batalkan Order</button>' : ''}
+    </div>`;
+}
+
+// ─────────────────────────────────────────────
+//  SELECT & DETAIL VIEW
+// ─────────────────────────────────────────────
+function selectOrder(id) {
+  const order = id === 'active' ? state.activeRide : (state.localOrders.find(o => o.id === id) || state.activeRide);
+  if (!order) return;
+  state.selectedOrder = order;
+  renderCustomerDetail(order);
+}
+
+function renderCustomerDetail(o) {
+  const right = document.getElementById('rightContent');
+  const stars = '⭐'.repeat(Math.round(o.customer.rating));
+  
+  right.innerHTML = `
+    <div style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
+      <div style="overflow-y:auto;padding:14px 16px;flex:1;">
+        <div class="customer-profile">
+          <div class="cust-avatar">${o.customer.initial}</div>
+          <div>
+            <div class="cust-name">${o.customer.name}</div>
+            <div class="cust-meta">${o.customer.trips} trips total</div>
+            <div class="cust-rating">${stars} ${o.customer.rating}</div>
+          </div>
+        </div>
+        <div class="mini-map">
+          <div class="mini-map-bg"></div>
+          <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:0.5;" viewBox="0 0 320 140">
+            <circle cx="60" cy="110" r="6" fill="var(--accent)"/>
+            <circle cx="260" cy="30" r="6" fill="var(--accent3)"/>
+            <path d="M60,110 C80,80 120,60 180,50 C220,42 240,35 260,30" stroke="url(#rg2)" stroke-width="2" fill="none" stroke-dasharray="6,4"/>
+            <defs><linearGradient id="rg2" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="var(--accent3)"/></linearGradient></defs>
+          </svg>
+          <div class="mini-map-label">📍 ${o.km.toFixed(1)} km route</div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-section-title">Trip Information</div>
+          <div class="detail-row"><span class="dr-label">📍 Pickup</span><span class="dr-val">${o.pickup}</span></div>
+          <div class="detail-row"><span class="dr-label">🎯 Destination</span><span class="dr-val">${o.destination}</span></div>
+          <div class="detail-row"><span class="dr-label">📏 Distance</span><span class="dr-val mono">${o.km.toFixed(1)} km</span></div>
+          <div class="detail-row"><span class="dr-label">⏱ ETA Pickup</span><span class="dr-val blue">${o.eta} minutes</span></div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-section-title">Fare Breakdown</div>
+          <div class="detail-row"><span class="dr-label">💰 Total Fare</span><span class="dr-val green">${o.fareStr}</span></div>
+          <div class="detail-row"><span class="dr-label">🎫 Tier</span><span class="dr-val">${o.tierLabel}</span></div>
+          <div class="detail-row"><span class="dr-label">🚗 Vehicle</span><span class="dr-val">${o.vehicle === 'car' ? 'Car' : 'Motor'}</span></div>
+          <div class="detail-row"><span class="dr-label">🏢 Platform</span><span class="dr-val" style="color:${o.platform==='gojek'?'var(--gojek)':'var(--grab)'}">${o.platform.charAt(0).toUpperCase()+o.platform.slice(1)}</span></div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-section-title">Contact</div>
+          <div class="contact-row">
+            <button class="contact-btn" onclick="showToast('📞 Calling ${o.customer.name}...')">📞 Call</button>
+            <button class="contact-btn" onclick="showChatPanel()">💬 Chat</button>
+          </div>
+        </div>
+      </div>
+      <div id="driverChatPanel" class="chat-panel" style="display:none;">
+        <div id="driverChatMessages" class="chat-messages-container"></div>
+        <div class="quick-replies" id="driverQuickReplies"></div>
+        <div class="chat-input-area">
+          <input id="driverChatInput" type="text" placeholder="Message customer..." onkeydown="if(event.key==='Enter')sendDriverChat()">
+          <button onclick="sendDriverChat()">↑</button>
+        </div>
+      </div>
+    </div>`;
+
+  const chatPanel = document.getElementById('driverChatPanel');
+  if (state.activeRide) {
+    chatPanel.style.display = 'flex';
+  }
+}
+
+function showChatPanel() {
+  const chatPanel = document.getElementById('driverChatPanel');
+  const detailsPanel = document.querySelector('[style*="overflow-y:auto"]');
+  if (chatPanel && detailsPanel) {
+    detailsPanel.style.display = 'none';
+    chatPanel.style.display = 'flex';
+  }
+}
+
+// ─────────────────────────────────────────────
+//  ACCEPT / DECLINE
+// ─────────────────────────────────────────────
+function openAcceptModal(e, id) {
+  e.stopPropagation();
+  const order = state.localOrders.find(o => o.id === id);
+  if (!order) return;
+  state.pendingAccept = order;
+  document.getElementById('acceptModalSub').textContent = `${order.customer.name} · ${order.pickup} → ${order.destination}`;
+  document.getElementById('acceptModalDetail').innerHTML = `
+    <div class="md-row"><span class="ml">💰 Fare</span><span class="mv" style="color:var(--accent)">${order.fareStr}</span></div>
+    <div class="md-row"><span class="ml">📏 Distance</span><span class="mv">${order.km.toFixed(1)} km</span></div>
+    <div class="md-row"><span class="ml">⏱ ETA to pickup</span><span class="mv">${order.eta} min</span></div>
+    <div class="md-row"><span class="ml">🚗 Vehicle</span><span class="mv">${order.vehicle === 'car' ? 'Car' : 'Motor'}</span></div>`;
+  openModal('acceptModal');
+}
+
+async function confirmAccept() {
+  const order = state.pendingAccept;
+  if (!order) return;
+  closeModal('acceptModal');
+
+  state.localOrders = state.localOrders.filter(o => o.id !== order.id);
+  order.status   = 'accepted';
+  order.rideStep = 0;
+  state.activeRide = order;
+
+  if (FB && order.fromFirestore) {
+    await updateDoc(doc(db, 'orders', order.id), {
+      status: 'driver_found',
+      driverInfo: {
+        name:    DRIVER.name,
+        plate:   DRIVER.plate,
+        vehicle: DRIVER.vehicle,
+        rating:  DRIVER.rating,
+        avatar:  DRIVER.avatar,
+      },
+      etaMinutes: order.eta,
+    }).catch(()=>{});
+  }
+
+  renderFeed();
+  selectOrder('active');
+  initRideChat(order.id, 'driver', DRIVER.name);
+  showToast(`✅ Accepted! Menuju ${order.pickup}`);
+  closeAlert();
+}
+
+function declineOrder(e, id) {
+  e.stopPropagation();
+  state.localOrders = state.localOrders.filter(o => o.id !== id);
+  if (state.selectedOrder?.id === id) {
+    state.selectedOrder = null;
+    document.getElementById('rightContent').innerHTML = `
+      <div class="no-selection"><div class="no-sel-icon">👆</div>
+      <div class="no-sel-text">Select an order to see customer details</div></div>`;
+  }
+  renderFeed();
+  showToast('❌ Order declined');
+}
+
+// ─────────────────────────────────────────────
+//  COMPLETE & CANCEL
+// ─────────────────────────────────────────────
+function openCompleteModal() {
+  if (!state.activeRide) return;
+  const o = state.activeRide;
+  const stepMsg = [
+    'Konfirmasi kamu sudah tiba di titik pickup.',
+    'Konfirmasi penumpang sudah masuk kendaraan.',
+    'Konfirmasi penumpang sudah tiba di tujuan.',
+  ][o.rideStep] || '';
+  document.getElementById('completeModalDetail').innerHTML = `
+    <div class="md-row"><span class="ml">👤 Customer</span><span class="mv">${o.customer.name}</span></div>
+    <div class="md-row"><span class="ml">📍 Step</span><span class="mv" style="color:var(--accent2)">${stepMsg}</span></div>
+    <div class="md-row"><span class="ml">💰 Fare</span><span class="mv" style="color:var(--accent)">${o.fareStr}</span></div>`;
+  openModal('completeModal');
+}
+
+async function confirmComplete() {
+  closeModal('completeModal');
+  const o = state.activeRide;
+  o.rideStep++;
+
+  const stepStatus = ['pickup_arrived', 'en_route', 'completed'];
+  const newStatus  = stepStatus[o.rideStep - 1] || 'completed';
+
+  if (FB && o.fromFirestore) {
+    await updateDoc(doc(db, 'orders', o.id), { status: newStatus }).catch(()=>{});
+  }
+
+  if (o.rideStep >= 3) {
+    finishTrip(o);
+  } else {
+    const toasts = ['📍 Tiba di pickup! Menunggu penumpang...', '🚗 Trip dimulai! Berkendara aman!'];
+    showToast(toasts[o.rideStep - 1] || '');
+    renderFeed();
+  }
+}
+
+async function finishTrip(o) {
+  if (FB && o.fromFirestore) {
+    await updateDoc(doc(db, 'orders', o.id), {
+      status: 'completed', completedAt: serverTimestamp(), driverName: DRIVER.name,
+    }).catch(()=>{});
+  }
+  stopRideChat();
+  state.stats.trips++;
+  state.stats.earnings += o.fare || 0;
+  state.stats.km += o.km || 0;
+  state.completedRides.unshift({
+    route:  `${o.pickup.split(',')[0]} → ${o.destination.split(',')[0]}`,
+    amount: o.fareStr,
+    time:   new Date().toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' }),
+    icon:   o.icon,
+  });
+  state.activeRide = null;
+  state.selectedOrder = null;
+  updateStats();
+  renderFeed();
+  renderRecentActivity();
+  document.getElementById('rightContent').innerHTML = `
+    <div class="no-selection">
+      <div class="no-sel-icon">🎉</div>
+      <div class="no-sel-text" style="color:var(--accent)">Trip selesai!<br>Kamu mendapat ${o.fareStr}</div>
+    </div>`;
+  showToast(`🎉 Trip selesai! Kamu mendapat ${o.fareStr}`);
+}
+
+function openCancelRideModal() {
+  const o = state.activeRide;
+  if (!o) return;
+  document.getElementById('cancelRideDetail').innerHTML = `
+    <div style="padding:10px 14px;background:var(--s2);border-radius:8px;border:1px solid var(--border);font-size:12px;">
+      <div style="color:var(--text2);margin-bottom:4px;">Customer: <strong style="color:var(--text)">${o.customer.name}</strong></div>
+      <div style="color:var(--text2);">${o.pickup} → ${o.destination}</div>
+      <div style="color:var(--accent);margin-top:4px;font-weight:600;">${o.fareStr}</div>
+    </div>`;
+  openModal('cancelRideModal');
+}
+
+async function confirmCancelRide() {
+  closeModal('cancelRideModal');
+  const o = state.activeRide;
+  if (!o) return;
+
+  if (FB && o.fromFirestore) {
+    await updateDoc(doc(db, 'orders', o.id), {
+      status: 'cancelled',
+      cancelledBy: 'driver',
+      cancelledAt: serverTimestamp(),
+    }).catch(() => {});
+  }
+
+  stopRideChat();
+  state.activeRide    = null;
+  state.selectedOrder = null;
+  renderFeed();
+  document.getElementById('rightContent').innerHTML = `
+    <div class="no-selection">
+      <div class="no-sel-icon">❌</div>
+      <div class="no-sel-text">Order dibatalkan.</div>
+    </div>`;
+  showToast('❌ Order dibatalkan');
+}
+
+// ─────────────────────────────────────────────
+//  STATS
+// ─────────────────────────────────────────────
+function updateStats() {
+  const e   = state.stats.earnings;
+  const pct = Math.min(100, Math.round((e / DRIVER.target) * 100));
+  document.getElementById('todayEarnings').textContent = `Rp ${e.toLocaleString('id-ID')}`;
+  document.getElementById('earningsSub').textContent   = `${state.stats.trips} trip${state.stats.trips !== 1 ? 's' : ''} selesai hari ini`;
+  document.getElementById('targetPct').textContent     = `${pct}%`;
+  document.getElementById('earningsBar').style.width   = `${pct}%`;
+  document.getElementById('statTrips').textContent     = state.stats.trips;
+  document.getElementById('statKm').textContent        = `${state.stats.km.toFixed(1)} km`;
+}
+
+function renderRecentActivity() {
+  const list = document.getElementById('recentList');
+  if (state.completedRides.length === 0) {
+    list.innerHTML = `<div style="font-size:12px;color:var(--muted);text-align:center;padding:16px 0;">Belum ada aktivitas hari ini</div>`;
+    return;
+  }
+  list.innerHTML = state.completedRides.slice(0, 5).map(r => `
+    <div class="earning-item">
+      <div class="ei-icon" style="background:var(--adim);">${r.icon}</div>
+      <div class="ei-info"><div class="ei-route">${r.route}</div><div class="ei-time">${r.time}</div></div>
+      <div class="ei-amount">${r.amount}</div>
+    </div>`).join('');
+}
+
+// ─────────────────────────────────────────────
+//  FILTER
+// ─────────────────────────────────────────────
+function setFilter(f, btn) {
+  state.filter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderFeed();
+}
+
+// ─────────────────────────────────────────────
+//  ORDER ALERT
+// ─────────────────────────────────────────────
+function showOrderAlert(order) {
+  const alert = document.getElementById('orderAlert');
+  document.getElementById('alertTitle').textContent =
+    `Order Masuk — ${order.vehicle === 'car' ? 'Mobil' : 'Motor'} ${order.fareStr}`;
+  document.getElementById('alertSub').textContent =
+    `${order.pickup} → ${order.destination} · ${order.km.toFixed(1)} km`;
+  document.getElementById('orderAlert').querySelector('.alert-pulse').textContent =
+    order.vehicle === 'car' ? '🚗' : '🛵';
+  alert.classList.add('show');
+  setTimeout(closeAlert, 8000);
+}
+
+function closeAlert() { document.getElementById('orderAlert').classList.remove('show'); }
+
+// ─────────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────────
+function openModal(id)  { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+function showToast(msg, dur = 3500) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+function cap(str)  { return str.split(' ').map(w => w.charAt(0).toUpperCase()+w.slice(1)).join(' '); }
+
+// ─────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────
+updateStats();
+renderRecentActivity();
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('show'); });
+});
+
+</script>
+</body>
+</html>
