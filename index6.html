@@ -1,0 +1,2605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RideFlow — Your Ride, Your Way</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+/* =============================================
+   VARIABLES & RESET
+============================================= */
+:root {
+  --bg: #080810;
+  --surface: #111118;
+  --surface2: #18181f;
+  --surface3: #1e1e28;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --accent: #6ee7b7;
+  --accent-dim: rgba(110,231,183,0.12);
+  --accent2: #3b82f6;
+  --accent2-dim: rgba(59,130,246,0.12);
+  --accent3: #f59e0b;
+  --accent3-dim: rgba(245,158,11,0.12);
+  --danger: #ef4444;
+  --text: #eeeef5;
+  --text2: #a0a0b0;
+  --muted: #52525e;
+  --gojek: #00AA13;
+  --grab: #00B14F;
+  --r: 16px;
+  --r-sm: 10px;
+  --r-xs: 6px;
+  --header-h: 68px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+button { font-family: inherit; }
+input, textarea { font-family: inherit; }
+a { text-decoration: none; color: inherit; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+/* =============================================
+   BACKGROUND
+============================================= */
+.bg-mesh {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 50% at 15% 15%, rgba(110,231,183,0.055) 0%, transparent 65%),
+    radial-gradient(ellipse 50% 70% at 85% 85%, rgba(59,130,246,0.045) 0%, transparent 65%),
+    radial-gradient(ellipse 35% 35% at 55% 45%, rgba(245,158,11,0.025) 0%, transparent 60%);
+}
+
+/* =============================================
+   HEADER
+============================================= */
+header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  height: var(--header-h);
+  padding: 0 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  backdrop-filter: blur(24px) saturate(180%);
+  background: rgba(8,8,16,0.85);
+  border-bottom: 1px solid var(--border);
+}
+.logo {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px; font-weight: 800; letter-spacing: -0.5px;
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+}
+.logo-icon {
+  width: 32px; height: 32px; border-radius: 9px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+}
+.header-right { display: flex; align-items: center; gap: 12px; }
+.header-status {
+  font-size: 12px; color: var(--text2);
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 20px;
+  background: var(--surface2); border: 1px solid var(--border);
+}
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: blink 2s infinite; }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.35;} }
+
+/* Auth buttons in header */
+.header-auth-btn {
+  padding: 8px 18px; border-radius: 10px; font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s; border: none;
+}
+.btn-ghost {
+  background: none; border: 1px solid var(--border2); color: var(--text2);
+}
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: var(--bg); font-weight: 600;
+}
+.btn-primary:hover { opacity: 0.85; transform: scale(0.98); }
+
+/* User avatar in header */
+.header-user {
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+  padding: 6px 12px; border-radius: 10px; transition: background 0.2s;
+}
+.header-user:hover { background: var(--surface2); }
+.user-avatar-sm {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent2), var(--accent));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: var(--bg); flex-shrink: 0;
+}
+.user-name-sm { font-size: 13px; font-weight: 500; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* =============================================
+   MAIN LAYOUT
+============================================= */
+#appShell {
+  position: relative; z-index: 1;
+  min-height: 100vh;
+  padding-top: var(--header-h);
+  display: none; /* shown after auth check */
+}
+#appShell.visible { display: block; }
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  height: calc(100vh - var(--header-h));
+}
+
+/* =============================================
+   LEFT: CHAT PANEL
+============================================= */
+.chat-panel {
+  display: flex; flex-direction: column;
+  height: 100%;
+  border-right: 1px solid var(--border);
+}
+.chat-header {
+  padding: 24px 32px 18px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.chat-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 26px; font-weight: 800; line-height: 1.15;
+  background: linear-gradient(130deg, var(--text) 0%, var(--accent) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.chat-subtitle { font-size: 13px; color: var(--text2); margin-top: 5px; }
+
+/* Nav tabs inside chat header */
+.chat-nav {
+  display: flex; gap: 4px; margin-top: 16px;
+}
+.chat-tab {
+  padding: 7px 16px; border-radius: 8px; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s; border: none; background: none;
+  color: var(--muted); letter-spacing: 0.03em;
+}
+.chat-tab.active { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.chat-tab:not(.active):hover { color: var(--text2); }
+
+/* Messages area */
+.chat-view { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+.chat-view.active { display: flex; }
+
+.chat-messages {
+  flex: 1; overflow-y: auto;
+  padding: 20px 28px;
+  display: flex; flex-direction: column; gap: 14px;
+  scroll-behavior: smooth;
+}
+.msg { display: flex; gap: 10px; animation: fadeUp 0.28s ease; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:translateY(0);} }
+.msg.user { flex-direction: row-reverse; }
+.msg-avatar {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+}
+.msg-avatar.bot { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: var(--bg); }
+.msg-avatar.user { background: var(--surface3); color: var(--text); border: 1px solid var(--border2); }
+.msg-bubble {
+  max-width: 78%; padding: 11px 15px;
+  border-radius: var(--r); font-size: 13.5px; line-height: 1.65;
+}
+.msg.bot .msg-bubble {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+}
+.msg.user .msg-bubble {
+  background: linear-gradient(135deg, rgba(110,231,183,0.13), rgba(59,130,246,0.13));
+  border: 1px solid rgba(110,231,183,0.18);
+  border-bottom-right-radius: 4px; text-align: right;
+}
+.msg-time { font-size: 10px; color: var(--muted); margin-top: 3px; }
+.quick-suggestions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
+.sug-chip {
+  padding: 5px 13px; border-radius: 20px; font-size: 12px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text2); transition: all 0.2s;
+}
+.sug-chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+/* Typing indicator */
+.typing-wrap { padding: 0 28px 8px; flex-shrink: 0; }
+.typing-indicator { display: none; align-items: center; gap: 5px; }
+.typing-indicator.show { display: flex; }
+.t-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); animation: tdot 1.1s infinite; }
+.t-dot:nth-child(2){animation-delay:.18s;} .t-dot:nth-child(3){animation-delay:.36s;}
+@keyframes tdot{0%,100%{opacity:.3;transform:translateY(0);}50%{opacity:1;transform:translateY(-3px);}}
+
+/* Chat input */
+.chat-input-area {
+  padding: 12px 28px 20px; border-top: 1px solid var(--border); flex-shrink: 0;
+}
+.chat-input-wrap {
+  display: flex; gap: 10px; align-items: flex-end;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 10px 14px; transition: border-color 0.2s;
+}
+.chat-input-wrap:focus-within { border-color: rgba(110,231,183,0.35); }
+#chatInput {
+  flex: 1; background: none; border: none; outline: none;
+  color: var(--text); font-size: 13.5px; resize: none;
+  min-height: 20px; max-height: 100px; line-height: 1.5;
+}
+#chatInput::placeholder { color: var(--muted); }
+.send-btn {
+  width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.send-btn:hover { opacity: 0.82; transform: scale(0.96); }
+
+/* =============================================
+   HISTORY VIEW
+============================================= */
+.history-view {
+  display: none; flex: 1; overflow-y: auto; padding: 20px 28px;
+  flex-direction: column; gap: 10px;
+}
+.history-view.active { display: flex; }
+.history-empty {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 10px; color: var(--muted); text-align: center;
+}
+.history-empty-icon { font-size: 40px; opacity: 0.4; }
+.history-empty p { font-size: 13px; }
+
+.hist-card {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 14px 16px;
+  cursor: pointer; transition: all 0.2s;
+}
+.hist-card:hover { border-color: var(--border2); background: var(--surface3); }
+.hist-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.hist-route { font-size: 13px; font-weight: 500; }
+.hist-route span { color: var(--accent); }
+.hist-meta { display: flex; gap: 8px; align-items: center; }
+.hist-status {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.06em; padding: 3px 8px; border-radius: 20px;
+}
+.hist-status.completed { background: rgba(110,231,183,0.12); color: var(--accent); }
+.hist-status.searching { background: rgba(59,130,246,0.12); color: var(--accent2); }
+.hist-status.cancelled { background: rgba(239,68,68,0.12); color: var(--danger); }
+.hist-bottom { display: flex; justify-content: space-between; align-items: center; }
+.hist-detail { font-size: 11px; color: var(--text2); }
+.hist-price { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--accent); }
+.hist-date { font-size: 11px; color: var(--muted); }
+.hist-platforms { display: flex; gap: 4px; margin-top: 4px; }
+
+/* =============================================
+   RIGHT PANEL — BOOKING
+============================================= */
+.booking-panel {
+  height: 100%; overflow-y: auto;
+  padding: 22px 24px 36px;
+  display: flex; flex-direction: column; gap: 18px;
+}
+.panel-label {
+  font-family: 'Syne', sans-serif;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Location card */
+.location-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); overflow: hidden;
+  transition: border-color 0.2s;
+}
+.location-card:focus-within { border-color: rgba(110,231,183,0.3); }
+.loc-group { position: relative; display: flex; align-items: center; min-height: 50px; }
+.loc-group + .loc-group { border-top: 1px solid var(--border); }
+.loc-dot {
+  position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+  width: 9px; height: 9px; border-radius: 50%; z-index: 1; flex-shrink: 0;
+}
+.loc-dot.pickup { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+.loc-dot.dest { background: var(--accent3); box-shadow: 0 0 0 3px var(--accent3-dim); }
+.loc-line {
+  position: absolute; left: 20px; top: 100%; height: 100%;
+  width: 1px; background: linear-gradient(var(--accent), var(--accent3));
+  opacity: 0.2; transform: translateX(-50%); pointer-events: none;
+}
+.loc-input {
+  width: 100%; background: transparent; border: none; outline: none;
+  padding: 14px 50px 14px 38px;
+  color: var(--text); font-size: 13.5px; line-height: 1.4;
+}
+.loc-input::placeholder { color: var(--muted); }
+.swap-btn {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  width: 28px; height: 28px; border-radius: 7px;
+  background: var(--surface2); border: 1px solid var(--border);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  color: var(--muted); transition: all 0.2s; z-index: 2;
+}
+.swap-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+/* Saved locations quick picks */
+.saved-picks { display: flex; gap: 7px; flex-wrap: wrap; }
+.saved-pick-btn {
+  padding: 6px 12px; border-radius: 20px; font-size: 12px;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text2); cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; gap: 5px;
+}
+.saved-pick-btn:hover { border-color: var(--accent3); color: var(--accent3); background: var(--accent3-dim); }
+
+/* Price estimator strip */
+.price-strip {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 12px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  min-height: 44px;
+}
+.price-label { font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 6px; }
+.price-value {
+  font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: var(--accent);
+}
+.price-sub { font-size: 10px; color: var(--muted); text-align: right; }
+.price-calculating { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.spin { animation: spin 1s linear infinite; display: inline-block; }
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+
+/* Vehicle toggle */
+.vehicle-toggle {
+  display: grid; grid-template-columns: 1fr 1fr;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 4px; gap: 4px;
+}
+.v-btn {
+  padding: 11px; border-radius: 12px; border: none; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+  color: var(--muted); background: none; transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.v-btn.active {
+  background: var(--surface2); color: var(--text);
+  border: 1px solid var(--border2);
+}
+
+/* Service grid */
+.service-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.svc-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 14px 8px;
+  cursor: pointer; transition: all 0.2s;
+  text-align: center; display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.svc-card:hover { border-color: rgba(110,231,183,0.25); }
+.svc-card.active { background: var(--accent-dim); border-color: var(--accent); }
+.svc-icon { font-size: 22px; }
+.svc-name { font-size: 11px; font-weight: 500; color: var(--text2); }
+.svc-card.active .svc-name { color: var(--accent); }
+
+/* Tier list */
+.tier-list { display: flex; flex-direction: column; gap: 7px; }
+.tier-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 12px 14px;
+  cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; gap: 12px;
+}
+.tier-card:hover { border-color: rgba(110,231,183,0.25); }
+.tier-card.active { border-color: var(--accent); background: var(--accent-dim); }
+.tier-icon { font-size: 26px; flex-shrink: 0; }
+.tier-info { flex: 1; min-width: 0; }
+.tier-name { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; }
+.tier-desc { font-size: 11px; color: var(--text2); margin-top: 1px; }
+.platform-row { display: flex; gap: 4px; margin-top: 4px; }
+.pbadge { font-size: 9px; font-weight: 700; letter-spacing: 0.04em; padding: 2px 6px; border-radius: 4px; }
+.pbadge.gojek { background: rgba(0,170,19,0.15); color: var(--gojek); }
+.pbadge.grab { background: rgba(0,177,79,0.12); color: var(--grab); }
+.tier-right { text-align: right; flex-shrink: 0; }
+.tier-price { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--accent); }
+.tier-eta { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+/* Saved locations section */
+.saved-loc-list { display: flex; flex-direction: column; gap: 7px; }
+.saved-loc-item {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 11px 14px;
+  display: flex; align-items: center; gap: 12px; transition: all 0.2s;
+}
+.saved-loc-item:hover { border-color: var(--border2); }
+.saved-loc-icon {
+  width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; background: var(--surface2);
+}
+.saved-loc-info { flex: 1; min-width: 0; }
+.saved-loc-name { font-size: 13px; font-weight: 500; }
+.saved-loc-addr { font-size: 11px; color: var(--text2); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.saved-loc-actions { display: flex; gap: 6px; }
+.icon-btn {
+  width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border);
+  background: none; cursor: pointer; color: var(--muted); transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; font-size: 13px;
+}
+.icon-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.icon-btn.delete:hover { border-color: var(--danger); color: var(--danger); background: rgba(239,68,68,0.1); }
+
+.add-saved-btn {
+  width: 100%; padding: 11px; border-radius: var(--r-sm);
+  border: 1px dashed var(--border2); background: none; color: var(--text2);
+  cursor: pointer; font-size: 13px; transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.add-saved-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+/* Section divider */
+.sec-divider {
+  display: flex; align-items: center; gap: 10px;
+}
+.sec-line { flex: 1; height: 1px; background: var(--border); }
+
+/* Book button */
+.book-btn {
+  width: 100%; padding: 16px; border-radius: var(--r); border: none; cursor: pointer;
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 0.02em;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: var(--bg); transition: opacity 0.2s, transform 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+}
+.book-btn:hover { opacity: 0.86; transform: scale(0.99); }
+.book-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+/* =============================================
+   MODALS
+============================================= */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 300;
+  background: rgba(0,0,0,0.72); backdrop-filter: blur(10px);
+  align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 22px; padding: 32px;
+  width: 100%; max-width: 420px;
+  animation: modalPop 0.3s cubic-bezier(.34,1.56,.64,1);
+  max-height: 90vh; overflow-y: auto;
+}
+@keyframes modalPop{from{opacity:0;transform:scale(0.88);}to{opacity:1;transform:scale(1);}}
+.modal-icon { font-size: 44px; text-align: center; margin-bottom: 16px; }
+.modal-title {
+  font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800;
+  text-align: center; margin-bottom: 6px;
+}
+.modal-sub { font-size: 13px; color: var(--text2); text-align: center; margin-bottom: 22px; }
+
+/* Order details block */
+.order-detail-block {
+  background: var(--surface2); border-radius: var(--r-sm);
+  padding: 14px; display: flex; flex-direction: column;
+  gap: 9px; margin-bottom: 20px;
+}
+.det-row { display: flex; justify-content: space-between; align-items: flex-start; font-size: 12.5px; }
+.det-label { color: var(--text2); flex-shrink: 0; }
+.det-val { font-weight: 500; text-align: right; max-width: 60%; }
+
+/* Driver card */
+.driver-card {
+  background: var(--surface2); border-radius: var(--r-sm); padding: 14px;
+  display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+  border: 1px solid var(--border);
+}
+.driver-avatar {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent2), var(--accent));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.driver-info { flex: 1; }
+.driver-name { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; }
+.driver-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.driver-stars { font-size: 11px; color: var(--accent3); margin-top: 3px; }
+.eta-pill {
+  background: var(--accent-dim); border: 1px solid rgba(110,231,183,0.2);
+  border-radius: 9px; padding: 6px 12px; text-align: center; flex-shrink: 0;
+}
+.eta-num { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--accent); }
+.eta-lbl { font-size: 9px; color: var(--text2); }
+
+/* Progress bar */
+.prog-wrap { margin: 14px 0; }
+.prog-track { background: var(--bg); border-radius: 4px; height: 3px; overflow: hidden; }
+.prog-fill {
+  height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  width: 0%; transition: width 0.6s ease;
+}
+.prog-steps { display: flex; justify-content: space-between; margin-top: 7px; }
+.p-step { font-size: 10px; color: var(--muted); }
+.p-step.done { color: var(--accent); }
+
+/* Rating modal */
+.star-row { display: flex; gap: 8px; justify-content: center; margin: 16px 0; }
+.star-btn {
+  font-size: 32px; cursor: pointer; transition: transform 0.15s;
+  background: none; border: none; line-height: 1;
+}
+.star-btn:hover, .star-btn.lit { transform: scale(1.2); filter: brightness(1.3); }
+.review-textarea {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 12px; color: var(--text);
+  font-size: 13px; resize: none; outline: none;
+  transition: border-color 0.2s;
+}
+.review-textarea:focus { border-color: rgba(110,231,183,0.35); }
+
+/* Auth modal */
+.auth-tabs { display: flex; background: var(--surface2); border-radius: var(--r-sm); padding: 3px; gap: 3px; margin-bottom: 22px; }
+.auth-tab {
+  flex: 1; padding: 9px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  cursor: pointer; border: none; background: none; color: var(--muted); transition: all 0.2s;
+}
+.auth-tab.active { background: var(--surface3); color: var(--text); }
+
+.form-group { margin-bottom: 14px; }
+.form-label { font-size: 11px; font-weight: 600; color: var(--text2); margin-bottom: 6px; display: block; letter-spacing: 0.05em; }
+.form-input {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 12px 14px; color: var(--text); font-size: 13.5px;
+  outline: none; transition: border-color 0.2s;
+}
+.form-input:focus { border-color: rgba(110,231,183,0.35); }
+.form-input::placeholder { color: var(--muted); }
+.form-error { font-size: 11px; color: var(--danger); margin-top: 5px; display: none; }
+.form-error.show { display: block; }
+
+/* Add saved location modal */
+.loc-type-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 7px; margin-bottom: 14px; }
+.loc-type-btn {
+  padding: 10px 6px; border-radius: var(--r-sm); border: 1px solid var(--border);
+  background: var(--surface2); cursor: pointer; transition: all 0.2s;
+  font-size: 18px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.loc-type-btn span { font-size: 10px; color: var(--text2); }
+.loc-type-btn.active { border-color: var(--accent3); background: var(--accent3-dim); }
+
+/* Generic modal buttons */
+.modal-btn {
+  width: 100%; padding: 14px; border-radius: var(--r); border: none; cursor: pointer;
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 0.02em;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: var(--bg); transition: opacity 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.modal-btn:hover { opacity: 0.84; }
+.modal-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.modal-btn-outline {
+  width: 100%; padding: 12px; margin-top: 8px;
+  border-radius: var(--r); border: 1px solid var(--border);
+  background: none; color: var(--text2); cursor: pointer;
+  font-size: 13px; transition: all 0.2s;
+}
+.modal-btn-outline:hover { border-color: var(--text); color: var(--text); }
+.modal-btn-danger {
+  width: 100%; padding: 12px; margin-top: 8px;
+  border-radius: var(--r); border: 1px solid rgba(239,68,68,0.3);
+  background: rgba(239,68,68,0.08); color: var(--danger); cursor: pointer;
+  font-size: 13px; transition: all 0.2s; font-weight: 600;
+}
+.modal-btn-danger:hover { background: rgba(239,68,68,0.15); }
+
+.divider-or { text-align: center; color: var(--muted); font-size: 12px; margin: 12px 0; position: relative; }
+.divider-or::before, .divider-or::after { content:''; position:absolute; top:50%; width: 40%; height:1px; background:var(--border); }
+.divider-or::before { left:0; } .divider-or::after { right:0; }
+
+/* =============================================
+   TOAST
+============================================= */
+.toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+  background: var(--surface2); border: 1px solid var(--border2);
+  padding: 10px 18px; border-radius: 40px; font-size: 13px;
+  z-index: 400; display: none; align-items: center; gap: 8px;
+  white-space: nowrap; box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.toast.show { display: flex; animation: toastIn 0.3s ease; }
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(8px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+
+/* =============================================
+   AUTH GATE (full screen)
+============================================= */
+#authGate {
+  position: fixed; inset: 0; z-index: 500;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 0;
+}
+.auth-gate-inner {
+  width: 100%; max-width: 400px; padding: 20px;
+}
+.auth-gate-logo {
+  font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800;
+  text-align: center; margin-bottom: 6px;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.auth-gate-sub { text-align: center; color: var(--text2); font-size: 14px; margin-bottom: 36px; }
+.auth-gate-card {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 22px; padding: 28px;
+}
+.auth-gate-card .auth-tabs { margin-bottom: 24px; }
+
+/* =============================================
+   LOADING SCREEN
+============================================= */
+#loadingScreen {
+  position: fixed; inset: 0; z-index: 600;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+}
+.loading-logo {
+  font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800;
+  display: flex; align-items: center; gap: 10px;
+}
+.loading-bar {
+  width: 120px; height: 3px; background: var(--surface2); border-radius: 3px; overflow: hidden;
+}
+.loading-bar-fill {
+  height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2));
+  border-radius: 3px; animation: loadbar 1.4s ease-in-out infinite;
+}
+@keyframes loadbar{0%{width:0;margin-left:0;}50%{width:100%;margin-left:0;}100%{width:0;margin-left:100%;}}
+
+/* =============================================
+   RESPONSIVE
+============================================= */
+@media (max-width: 768px) {
+  .main-grid { grid-template-columns: 1fr; grid-template-rows: 60vh 1fr; }
+  .chat-panel { height: 60vh; }
+  .header-status { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="bg-mesh"></div>
+
+<!-- ===== LOADING SCREEN ===== -->
+<div id="loadingScreen">
+  <div class="loading-logo">
+    <div class="logo-icon">🛵</div>
+    RideFlow
+  </div>
+  <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+</div>
+
+<!-- ===== AUTH GATE ===== -->
+<div id="authGate" style="display:none;">
+  <div class="auth-gate-inner">
+    <div class="auth-gate-logo">
+      <div class="logo-icon">🛵</div>
+      RideFlow
+    </div>
+    <div class="auth-gate-sub">Your smart ride companion</div>
+    <div class="auth-gate-card">
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="switchAuthTab('login')">Sign In</button>
+        <button class="auth-tab" onclick="switchAuthTab('register')">Register</button>
+      </div>
+
+      <!-- Login form -->
+      <div id="loginForm">
+        <div class="form-group">
+          <label class="form-label">EMAIL</label>
+          <input class="form-input" id="loginEmail" type="email" placeholder="you@email.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">PASSWORD</label>
+          <input class="form-input" id="loginPassword" type="password" placeholder="••••••••">
+        </div>
+        <div class="form-error" id="loginError"></div>
+        <button class="modal-btn" style="margin-top:6px;" onclick="doLogin()" id="loginBtn">
+          Sign In
+        </button>
+        <div class="divider-or">or</div>
+        <button class="modal-btn-outline" onclick="doGuestMode()">Continue as Guest</button>
+      </div>
+
+      <!-- Register form -->
+      <div id="registerForm" style="display:none;">
+        <div class="form-group">
+          <label class="form-label">FULL NAME</label>
+          <input class="form-input" id="regName" type="text" placeholder="Your name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">EMAIL</label>
+          <input class="form-input" id="regEmail" type="email" placeholder="you@email.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">PASSWORD</label>
+          <input class="form-input" id="regPassword" type="password" placeholder="Min. 6 characters">
+        </div>
+        <div class="form-error" id="registerError"></div>
+        <button class="modal-btn" style="margin-top:6px;" onclick="doRegister()" id="registerBtn">
+          Create Account
+        </button>
+        <div class="divider-or">or</div>
+        <button class="modal-btn-outline" onclick="doGuestMode()">Continue as Guest</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== HEADER ===== -->
+<header>
+  <div class="logo" onclick="location.reload()">
+    <div class="logo-icon">🛵</div>
+    RideFlow
+  </div>
+  <div class="header-right">
+    <div class="header-status">
+      <div class="status-dot"></div>
+      <span>1,240 drivers nearby</span>
+    </div>
+    <!-- shown when logged out -->
+    <div id="headerAuthBtns">
+      <button class="header-auth-btn btn-ghost" onclick="showAuthGate()">Sign In</button>
+      <button class="header-auth-btn btn-primary" style="margin-left:6px;" onclick="showAuthGate('register')">Register</button>
+    </div>
+    <!-- shown when logged in -->
+    <div id="headerUser" style="display:none;">
+      <div class="header-user" onclick="showUserMenu()">
+        <div class="user-avatar-sm" id="headerAvatar">?</div>
+        <div class="user-name-sm" id="headerName">User</div>
+        <span style="color:var(--muted);font-size:11px;">▾</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ===== APP SHELL ===== -->
+<div id="appShell">
+  <div class="main-grid">
+
+    <!-- ===== LEFT: CHAT + HISTORY ===== -->
+    <div class="chat-panel">
+      <div class="chat-header">
+        <div class="chat-title">Where are you<br>headed today?</div>
+        <div class="chat-subtitle">Chat naturally — I'll set up your booking automatically.</div>
+        <div class="chat-nav">
+          <button class="chat-tab active" onclick="switchChatTab('chat')">💬 Chat</button>
+          <button class="chat-tab" onclick="switchChatTab('history')">📋 History</button>
+        </div>
+      </div>
+
+      <!-- Chat view -->
+      <div class="chat-view active" id="chatView">
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="typing-wrap">
+          <div class="typing-indicator" id="typingIndicator">
+            <div class="t-dot"></div><div class="t-dot"></div><div class="t-dot"></div>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <div class="chat-input-wrap">
+            <textarea id="chatInput" rows="1"
+              placeholder="e.g. 'Ride from Sudirman to Blok M by car'..."
+              oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
+            <button class="send-btn" onclick="sendMessage()">
+              <svg width="14" height="14" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24">
+                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- History view -->
+      <div class="history-view" id="historyView">
+        <div id="historyList"></div>
+        <div class="history-empty" id="historyEmpty" style="display:none;">
+          <div class="history-empty-icon">🛵</div>
+          <p>No rides yet.<br>Book your first ride!</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== RIGHT: BOOKING PANEL ===== -->
+    <div class="booking-panel">
+
+      <!-- LOCATION -->
+      <div>
+        <div class="panel-label" style="margin-bottom:10px;">Location</div>
+        <div class="location-card">
+          <div class="loc-group">
+            <div class="loc-dot pickup"></div>
+            <div class="loc-line"></div>
+            <input class="loc-input" id="pickupInput" placeholder="📍 Pickup location" type="text" autocomplete="off">
+          </div>
+          <div class="loc-group">
+            <div class="loc-dot dest"></div>
+            <input class="loc-input" id="destInput" placeholder="🎯 Where to?" type="text" autocomplete="off" style="padding-right:48px;">
+            <button class="swap-btn" onclick="swapLocations()" title="Swap">
+              <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Saved location quick picks -->
+        <div class="saved-picks" id="savedPicks" style="margin-top:9px;"></div>
+      </div>
+
+      <!-- PRICE ESTIMATOR -->
+      <div class="price-strip" id="priceStrip">
+        <div class="price-label">
+          <span>💰</span> Estimated Fare
+        </div>
+        <div style="text-align:right;">
+          <div class="price-value" id="priceValue">—</div>
+          <div class="price-sub" id="priceSub">Enter locations first</div>
+        </div>
+      </div>
+
+      <!-- VEHICLE TYPE -->
+      <div>
+        <div class="panel-label" style="margin-bottom:10px;">Vehicle Type</div>
+        <div class="vehicle-toggle">
+          <button class="v-btn active" id="motoBtn" onclick="selectVehicle('motor')">🏍 Motor</button>
+          <button class="v-btn" id="carBtn" onclick="selectVehicle('car')">🚗 Car</button>
+        </div>
+      </div>
+
+      <!-- SERVICE -->
+      <div>
+        <div class="panel-label" style="margin-bottom:10px;">Service</div>
+        <div class="service-grid">
+          <div class="svc-card active" id="svc-ride" onclick="selectService('ride')">
+            <div class="svc-icon">🛵</div>
+            <div class="svc-name">Ride</div>
+          </div>
+          <div class="svc-card" id="svc-delivery" onclick="selectService('delivery')">
+            <div class="svc-icon">📦</div>
+            <div class="svc-name">Delivery</div>
+          </div>
+          <div class="svc-card" id="svc-food" onclick="selectService('food')">
+            <div class="svc-icon">🍱</div>
+            <div class="svc-name">Food</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIER -->
+      <div>
+        <div class="sec-divider" style="margin-bottom:10px;">
+          <div class="panel-label">Choose Tier</div>
+          <div class="sec-line"></div>
+        </div>
+        <div class="tier-list" id="tierList"></div>
+      </div>
+
+      <!-- SAVED LOCATIONS MANAGER -->
+      <div>
+        <div class="sec-divider" style="margin-bottom:10px;">
+          <div class="panel-label">Saved Locations</div>
+          <div class="sec-line"></div>
+        </div>
+        <div class="saved-loc-list" id="savedLocList"></div>
+        <button class="add-saved-btn" onclick="openAddSavedModal()" style="margin-top:8px;">
+          + Add Location
+        </button>
+      </div>
+
+      <!-- BOOK BUTTON -->
+      <button class="book-btn" id="bookBtn" onclick="openConfirmModal()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+        Find My Driver
+      </button>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: CONFIRM ORDER ===== -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal">
+    <div class="modal-icon">🚀</div>
+    <div class="modal-title">Confirm Your Ride</div>
+    <div class="modal-sub">Searching across Gojek & Grab for the best driver</div>
+    <div class="order-detail-block" id="confirmDetails"></div>
+    <button class="modal-btn" onclick="proceedBook()">Confirm & Find Driver</button>
+    <button class="modal-btn-outline" onclick="closeModal('confirmModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- ===== MODAL: SEARCHING ===== -->
+<div class="modal-overlay" id="searchingModal">
+  <div class="modal" style="max-width:400px;text-align:center;padding:36px 28px;">
+    <div style="font-size:40px;margin-bottom:16px;animation:spin 2s linear infinite;display:inline-block;">🔍</div>
+    <div class="modal-title" style="font-size:18px;margin-bottom:8px;">Mencari Driver...</div>
+    <div class="modal-sub" style="font-size:13px;margin-bottom:20px;">Orderan kamu sudah masuk. Menunggu driver menerima pesanan.</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 16px;background:var(--surface2);border-radius:10px;margin-bottom:20px;border:1px solid var(--border);">
+      <span id="searchPickup" style="font-size:12px;color:var(--text2);">—</span>
+      <span style="color:var(--accent3);">→</span>
+      <span id="searchDest" style="font-size:12px;color:var(--text2);font-weight:600;">—</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:24px;">
+      <span class="pulse-dot" style="width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block;animation:pulse 1.5s ease-in-out infinite;"></span>
+      <span id="searchStatus" style="font-size:12px;color:var(--text2);">Menyiarkan ke driver terdekat...</span>
+    </div>
+    <button class="modal-btn-outline" onclick="cancelSearching()" style="font-size:13px;">Batalkan Pencarian</button>
+    <style>
+      @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+      @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.4; transform:scale(0.8); } }
+    </style>
+  </div>
+</div>
+
+<!-- ===== MODAL: DRIVER FOUND ===== -->
+<div class="modal-overlay" id="driverModal">
+  <div class="modal" style="max-width:460px;padding:0;overflow:hidden;">
+    <!-- Header -->
+    <div style="padding:20px 20px 0;">
+      <div class="modal-title" style="margin-bottom:4px;font-size:17px;">Driver Ditemukan! 🎉</div>
+      <div class="modal-sub" style="margin-bottom:12px;font-size:12px;">Driver sedang dalam perjalanan ke lokasimu</div>
+      <div class="driver-card">
+        <div class="driver-avatar" id="driverAvatarCust" style="font-size:18px;width:44px;height:44px;">👤</div>
+        <div class="driver-info">
+          <div class="driver-name" id="driverName">—</div>
+          <div class="driver-sub" id="driverPlate">—</div>
+          <div class="driver-stars" id="driverRating">⭐ —</div>
+        </div>
+        <div class="eta-pill">
+          <div class="eta-num" id="etaNum">—</div>
+          <div class="eta-lbl">min away</div>
+        </div>
+      </div>
+      <!-- Real-time driver status -->
+      <div id="driverStatusBar" style="display:flex;align-items:center;gap:8px;margin:10px 0 8px;padding:8px 12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
+        <span id="driverStatusDot" style="width:8px;height:8px;border-radius:50%;background:var(--accent3);flex-shrink:0;display:inline-block;"></span>
+        <span id="driverStatusText" style="font-size:12px;color:var(--text2);">Driver is heading to your location...</span>
+      </div>
+      <div class="prog-wrap">
+        <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+        <div class="prog-steps">
+          <span class="p-step done" id="ps1">✓ Confirmed</span>
+          <span class="p-step" id="ps2">En Route</span>
+          <span class="p-step" id="ps3">Arrived</span>
+        </div>
+      </div>
+      <div class="order-detail-block" id="driverDetails"></div>
+    </div>
+
+    <!-- Chat tabs -->
+    <div style="display:flex;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-top:10px;">
+      <button id="tabInfo" onclick="switchDriverTab('info')" style="flex:1;padding:9px;font-size:12px;font-weight:600;background:none;border:none;color:var(--accent);border-bottom:2px solid var(--accent);cursor:pointer;">📋 Trip Info</button>
+      <button id="tabChat" onclick="switchDriverTab('chat')" style="flex:1;padding:9px;font-size:12px;font-weight:600;background:none;border:none;color:var(--text2);border-bottom:2px solid transparent;cursor:pointer;">💬 Chat Driver <span id="chatUnreadBadge" style="display:none;background:var(--danger);color:#fff;font-size:9px;padding:1px 5px;border-radius:8px;margin-left:4px;">0</span></button>
+    </div>
+
+    <!-- Info panel -->
+    <div id="driverTabInfo" style="padding:14px 20px 20px;">
+      <button class="modal-btn" onclick="completeRide()">Complete Ride</button>
+      <button class="modal-btn-outline" onclick="cancelRide()">Cancel Ride</button>
+    </div>
+
+    <!-- Chat panel -->
+    <div id="driverTabChat" style="display:none;flex-direction:column;height:260px;">
+      <div id="custChatMessages" style="flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px;">
+        <div style="text-align:center;font-size:11px;color:var(--muted);padding:8px 0;">Chat with your driver</div>
+      </div>
+      <div style="display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--border);">
+        <div style="display:flex;gap:6px;flex:1;flex-wrap:wrap;" id="chatQuickReplies"></div>
+      </div>
+      <div style="display:flex;gap:8px;padding:0 14px 14px;">
+        <input id="custChatInput" type="text" placeholder="Message your driver..."
+          style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;outline:none;"
+          onkeydown="if(event.key==='Enter')sendCustChat()">
+        <button onclick="sendCustChat()" style="padding:9px 14px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:8px;color:var(--bg);font-weight:700;cursor:pointer;font-size:13px;">↑</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: RATE DRIVER ===== -->
+<div class="modal-overlay" id="ratingModal">
+  <div class="modal">
+    <div class="modal-icon">🌟</div>
+    <div class="modal-title">Rate Your Driver</div>
+    <div class="modal-sub" id="ratingDriverName">How was your ride?</div>
+    <div class="star-row" id="starRow">
+      <button class="star-btn" onclick="setRating(1)">⭐</button>
+      <button class="star-btn" onclick="setRating(2)">⭐</button>
+      <button class="star-btn" onclick="setRating(3)">⭐</button>
+      <button class="star-btn" onclick="setRating(4)">⭐</button>
+      <button class="star-btn" onclick="setRating(5)">⭐</button>
+    </div>
+    <textarea class="review-textarea" id="reviewText" rows="3" placeholder="Any comments? (optional)"></textarea>
+    <button class="modal-btn" style="margin-top:14px;" onclick="submitRating()">Submit Review</button>
+    <button class="modal-btn-outline" onclick="closeModal('ratingModal'); addBotMessage('Thanks! Enjoy your next ride. 🛵')">Skip</button>
+  </div>
+</div>
+
+<!-- ===== MODAL: ADD SAVED LOCATION ===== -->
+<div class="modal-overlay" id="addSavedModal">
+  <div class="modal">
+    <div class="modal-title" style="margin-bottom:6px;">Save Location</div>
+    <div class="modal-sub" style="margin-bottom:18px;">Quick access to your frequent spots</div>
+    <div class="loc-type-grid" id="locTypeGrid">
+      <button class="loc-type-btn active" onclick="selectLocType(this,'🏠')" data-icon="🏠">🏠<span>Home</span></button>
+      <button class="loc-type-btn" onclick="selectLocType(this,'🏢')" data-icon="🏢">🏢<span>Office</span></button>
+      <button class="loc-type-btn" onclick="selectLocType(this,'🏫')" data-icon="🏫">🏫<span>Campus</span></button>
+      <button class="loc-type-btn" onclick="selectLocType(this,'📌')" data-icon="📌">📌<span>Other</span></button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">LABEL</label>
+      <input class="form-input" id="savedLocLabel" type="text" placeholder="e.g. My Home, Office">
+    </div>
+    <div class="form-group">
+      <label class="form-label">ADDRESS</label>
+      <input class="form-input" id="savedLocAddr" type="text" placeholder="Full address or area name">
+    </div>
+    <button class="modal-btn" onclick="saveSavedLocation()">Save Location</button>
+    <button class="modal-btn-outline" onclick="closeModal('addSavedModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- ===== MODAL: USER MENU ===== -->
+<div class="modal-overlay" id="userMenuModal">
+  <div class="modal" style="max-width:340px;">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:22px;">
+      <div class="driver-avatar" id="menuAvatar" style="width:52px;height:52px;font-size:22px;flex-shrink:0;border-radius:50%;"></div>
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:700;" id="menuName">—</div>
+        <div style="font-size:12px;color:var(--text2);" id="menuEmail">—</div>
+        <div style="font-size:11px;color:var(--accent);margin-top:3px;" id="menuGuest"></div>
+      </div>
+    </div>
+    <div class="order-detail-block" id="menuStats"></div>
+    <button class="modal-btn-danger" onclick="doSignOut()">Sign Out</button>
+    <button class="modal-btn-outline" onclick="closeModal('userMenuModal')">Close</button>
+  </div>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+<!-- ===== SINGLE UNIFIED MODULE SCRIPT ===== -->
+<script type="module">
+// ─────────────────────────────────────────────
+//  FIREBASE IMPORTS
+// ─────────────────────────────────────────────
+import { initializeApp }                      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword,
+         signInWithEmailAndPassword, signOut,
+         onAuthStateChanged, updateProfile }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, addDoc,
+         updateDoc, deleteDoc, doc, query,
+         where, orderBy, onSnapshot,
+         serverTimestamp, getDoc }            from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ─────────────────────────────────────────────
+//  🔥 FIREBASE CONFIG — Replace with yours!
+// ─────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyDSVnNtzby_0n0OMQEpRV0Cpye1b371LNs",
+  authDomain: "rideflow-app-a9953.firebaseapp.com",
+  projectId: "rideflow-app-a9953",
+  storageBucket: "rideflow-app-a9953.firebasestorage.app",
+  messagingSenderId: "763385025754",
+  appId: "1:763385025754:web:6a782f197a826c5080c1e3",
+  measurementId: "G-YKS9VLS8GY" 
+};
+
+// ─────────────────────────────────────────────
+//  FIREBASE INIT
+// ─────────────────────────────────────────────
+let auth, db;
+let FB = false; // Firebase ready flag
+
+try {
+  const app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db   = getFirestore(app);
+  FB   = true;
+  console.log("✅ Firebase connected");
+} catch(e) {
+  console.warn("⚠️ Firebase not configured — running in demo mode:", e.message);
+}
+
+// ─────────────────────────────────────────────
+//  FIREBASE HELPER FUNCTIONS
+//  (defined here, called directly — no window bridging needed)
+// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+//  DEMO AUTH — In-memory store (no localStorage needed)
+// ─────────────────────────────────────────────
+const _demoUsers  = {};   // { email: { uid, email, name, password } }
+const _demoOrders = [];   // shared order list for demo mode
+// Expose to window so driver app (same tab) can read orders in demo mode
+window._sharedDemoOrders = _demoOrders;
+window._sharedDemoUsers  = _demoUsers;
+
+function getDemoUsers()        { return _demoUsers; }
+function saveDemoUsers(_)      { /* no-op: already mutating in-memory */ }
+
+async function fbLogin(email, password) {
+  if (FB) {
+    const c = await signInWithEmailAndPassword(auth, email, password);
+    return c.user;
+  }
+  // Demo fallback
+  const users = getDemoUsers();
+  const user  = users[email.toLowerCase()];
+  if (!user)              throw { code: 'auth/user-not-found' };
+  if (user.password !== password) throw { code: 'auth/wrong-password' };
+  // Simulate Firebase user object
+  const fakeUser = { uid: user.uid, email: user.email, displayName: user.name };
+  window._currentUser = { uid: user.uid, email: user.email, name: user.name, isGuest: false };
+  onUserLoggedIn(window._currentUser);
+  return fakeUser;
+}
+
+async function fbRegister(email, password, name) {
+  if (FB) {
+    const c = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(c.user, { displayName: name });
+    return c.user;
+  }
+  // Demo fallback
+  const users = getDemoUsers();
+  if (users[email.toLowerCase()]) throw { code: 'auth/email-already-in-use' };
+  const uid  = 'demo_' + Date.now();
+  users[email.toLowerCase()] = { uid, email, name, password };
+  saveDemoUsers(users);
+  const fakeUser = { uid, email, displayName: name };
+  window._currentUser = { uid, email, name, isGuest: false };
+  onUserLoggedIn(window._currentUser);
+  return fakeUser;
+}
+
+async function fbSignOut() {
+  if (FB) await signOut(auth);
+  // Demo: just clear current user (handled by caller)
+}
+
+// ─────────────────────────────────────────────
+//  DEMO ORDER STORE — In-memory
+// ─────────────────────────────────────────────
+function getDemoOrders()        { return _demoOrders; }
+function saveDemoOrders(_)      { /* no-op: already mutating in-memory */ }
+
+async function fbSaveOrder(orderData) {
+  const user = window._currentUser;
+  const enriched = {
+    ...orderData,
+    customerName:   user?.name  || 'Customer',
+    customerUid:    user?.uid   || 'guest',
+    customerEmail:  user?.email || '',
+  };
+  if (FB) {
+    const uid = user?.uid || 'guest';
+    const ref = await addDoc(collection(db, 'orders'), {
+      ...enriched, uid, timestamp: serverTimestamp(), status: 'searching'
+    });
+    return ref.id;
+  }
+  // Demo: save to in-memory store
+  const id = 'demo-' + Date.now();
+  _demoOrders.unshift({ ...enriched, id, status: 'searching', timestamp: new Date().toISOString() });
+  return id;
+}
+
+async function fbUpdateOrder(orderId, status, extra = {}) {
+  if (FB) {
+    if (!orderId || orderId.startsWith('local') || orderId.startsWith('demo')) return;
+    await updateDoc(doc(db, 'orders', orderId), { status, ...extra });
+    return;
+  }
+  // Demo: update in-memory
+  const idx = _demoOrders.findIndex(o => o.id === orderId);
+  if (idx !== -1) Object.assign(_demoOrders[idx], { status, ...extra });
+}
+
+function fbListenOrders(uid, cb) {
+  if (!FB) { cb([]); return () => {}; }
+  const q = query(collection(db,'orders'), where('uid','==',uid), orderBy('timestamp','desc'));
+  return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+}
+
+async function fbSaveLoc(locData) {
+  if (!FB) return 'demo-loc-' + Date.now();
+  const uid = window._currentUser?.uid || 'guest';
+  const ref = await addDoc(collection(db,'savedLocations'), { ...locData, uid, createdAt: serverTimestamp() });
+  return ref.id;
+}
+
+async function fbDeleteLoc(locId) {
+  if (!FB || locId.startsWith('demo')) return;
+  await deleteDoc(doc(db, 'savedLocations', locId));
+}
+
+function fbListenLocs(uid, cb) {
+  if (!FB) { cb([]); return () => {}; }
+  const q = query(collection(db,'savedLocations'), where('uid','==',uid));
+  return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+}
+
+// ─────────────────────────────────────────────
+//  ALL APP CODE BELOW (runs inside same module)
+// ─────────────────────────────────────────────
+// =============================================
+//  TIER DATA
+// =============================================
+const TIERS = {
+  motor: {
+    ride: [
+      { id:'standard', icon:'🏍', name:'Motor Standard', desc:'Everyday rides, best value', basePrice:8000, pricePerKm:2000, eta:'3–5 min', platforms:['gojek','grab'] },
+      { id:'premium',  icon:'⚡', name:'Motor Premium',  desc:'Faster pickup & top-rated drivers', basePrice:14000, pricePerKm:3000, eta:'2–4 min', platforms:['grab'] },
+      { id:'priority', icon:'👑', name:'Motor Priority', desc:'VIP treatment, highest rated', basePrice:20000, pricePerKm:4500, eta:'1–3 min', platforms:['gojek'] },
+    ],
+    delivery: [
+      { id:'standard', icon:'📦', name:'GoSend / GrabExpress', desc:'Affordable same-day delivery', basePrice:10000, pricePerKm:2500, eta:'Pick up in 5 min', platforms:['gojek','grab'] },
+      { id:'premium',  icon:'🚀', name:'Express Send', desc:'Priority delivery, real-time tracking', basePrice:20000, pricePerKm:4000, eta:'Pick up in 2 min', platforms:['gojek'] },
+    ],
+    food: [
+      { id:'standard', icon:'🍱', name:'GoFood / GrabFood', desc:'Order from nearby restaurants', basePrice:8000, pricePerKm:2000, eta:'20–35 min', platforms:['gojek','grab'] },
+    ],
+  },
+  car: {
+    ride: [
+      { id:'standard', icon:'🚗', name:'Car Standard', desc:'Comfortable everyday car', basePrice:25000, pricePerKm:4000, eta:'4–7 min', platforms:['gojek','grab'] },
+      { id:'premium',  icon:'🚘', name:'Car Premium',  desc:'SUV / newer model cars', basePrice:55000, pricePerKm:7000, eta:'3–5 min', platforms:['grab'] },
+      { id:'priority', icon:'💎', name:'Car Priority', desc:'Black car, executive class', basePrice:100000, pricePerKm:12000, eta:'2–4 min', platforms:['gojek'] },
+    ],
+    delivery: [
+      { id:'standard', icon:'📦', name:'Car Delivery', desc:'Large items, multi-stop', basePrice:40000, pricePerKm:6000, eta:'Pick up in 7 min', platforms:['gojek','grab'] },
+    ],
+    food: [
+      { id:'standard', icon:'🍔', name:'Car Food', desc:'Large food orders via car', basePrice:30000, pricePerKm:5000, eta:'25–45 min', platforms:['grab'] },
+    ],
+  },
+};
+
+// Drivers dipisah berdasarkan tipe kendaraan
+const MOCK_DRIVERS = {
+  motor: [
+    { name:'Ahmad Fauzi',    plate:'B 4521 XYZ', vehicle:'Honda Vario 125',  rating:4.92, platform:'gojek', pColor:'var(--gojek)', eta:4 },
+    { name:'Budi Santoso',   plate:'B 8823 ABC', vehicle:'Yamaha NMAX 155',  rating:4.88, platform:'grab',  pColor:'var(--grab)',  eta:6 },
+    { name:'Hendra Wijaya',  plate:'B 2291 PQR', vehicle:'Honda Beat',       rating:4.85, platform:'gojek', pColor:'var(--gojek)', eta:5 },
+    { name:'Rizky Aditya',   plate:'B 7732 STU', vehicle:'Yamaha Aerox',     rating:4.90, platform:'grab',  pColor:'var(--grab)',  eta:3 },
+    { name:'Andi Kusuma',    plate:'B 5519 VWX', vehicle:'Honda Scoopy',     rating:4.78, platform:'gojek', pColor:'var(--gojek)', eta:7 },
+  ],
+  car: [
+    { name:'Reza Pratama',   plate:'B 1234 DEF', vehicle:'Toyota Avanza',           rating:4.95, platform:'gojek', pColor:'var(--gojek)', eta:5 },
+    { name:'Diana Putri',    plate:'B 5678 GHI', vehicle:'Honda Freed',             rating:4.97, platform:'grab',  pColor:'var(--grab)',  eta:7 },
+    { name:'Siti Rahma',     plate:'B 9001 JKL', vehicle:'Mitsubishi Xpander',      rating:4.91, platform:'grab',  pColor:'var(--grab)',  eta:6 },
+    { name:'Bagas Nugroho',  plate:'B 3344 MNO', vehicle:'Toyota Innova Reborn',    rating:4.96, platform:'gojek', pColor:'var(--gojek)', eta:4 },
+    { name:'Melissa Angkat', plate:'B 6610 YZA', vehicle:'Suzuki Ertiga',           rating:4.89, platform:'grab',  pColor:'var(--grab)',  eta:8 },
+  ],
+};
+
+// =============================================
+//  APP STATE
+// =============================================
+const state = {
+  vehicle: 'motor',
+  service: 'ride',
+  tier: 'standard',
+  pickup: '',
+  destination: '',
+  currentOrderId: null,
+  currentDriver: null,
+  userRating: 0,
+  savedLocType: '🏠',
+  unsubOrders: null,
+  unsubSavedLocs: null,
+  orders: [],
+  savedLocs: [],
+  estimatedKm: null,
+};
+
+// ─────────────────────────────────────────────
+//  AUTH STATE LISTENER  (inside same module — no timing issue)
+// ─────────────────────────────────────────────
+if (FB) {
+  onAuthStateChanged(auth, async (user) => {
+    document.getElementById('loadingScreen').style.display = 'none';
+
+    if (user) {
+      try {
+        // 🔴 PENTING: Cek di CUSTOMERS collection
+        const custSnap = await getDoc(doc(db, 'customers', user.uid));
+        
+        if (!custSnap.exists()) {
+          // User tidak ada di customers collection → redirect ke register
+          await signOut(auth);
+          showAuthGate();
+          showToast('❌ This account is not a customer account. Please register as customer.');
+          return;
+        }
+
+        const custData = custSnap.data();
+
+        currentUser = {
+          uid: user.uid,
+          email: user.email,
+          name: custData.name || user.displayName || user.email.split('@')[0],
+          isGuest: false,
+          totalRides: custData.totalRides || 0,
+          rating: custData.rating || 5.0,
+        };
+
+        onUserLoggedIn(currentUser);
+      } catch(e) {
+        console.error('Error loading profile:', e);
+        currentUser = {
+          uid: user.uid,
+          email: user.email,
+          name: user.displayName || 'User',
+          isGuest: false,
+        };
+        onUserLoggedIn(currentUser);
+      }
+    } else {
+      onUserLoggedOut();
+    }
+  });
+}
+// ─────────────────────────────────────────────
+//  EXPOSE INLINE-ONCLICK FUNCTIONS TO WINDOW
+//  (needed because module scope ≠ global scope)
+// ─────────────────────────────────────────────
+//  AUTH HANDLERS
+// ─────────────────────────────────────────────
+function onUserLoggedIn(user) {
+  hideEl('loadingScreen');
+  hideEl('authGate');
+  showAppShell();
+  updateHeaderUser(user);
+  subscribeToData(user.uid);
+  if (!user.isGuest) {
+    addBotMessage(`Welcome back, **${user.name}**! 👋 Where are you headed today?`);
+  } else {
+    initGuestChat();
+  }
+}
+
+function onUserLoggedOut() {
+  hideEl('loadingScreen');
+  showEl('authGate');
+  hideEl('appShell');
+  showEl('headerAuthBtns');
+  hideEl('headerUser');
+  unsubscribeData();
+}
+
+function subscribeToData(uid) {
+  unsubscribeData();
+  state.unsubOrders = fbListenOrders(uid, (orders) => {
+    state.orders = orders;
+    renderHistory();
+  });
+  state.unsubSavedLocs = fbListenLocs(uid, (locs) => {
+    state.savedLocs = locs;
+    renderSavedLocs();
+    renderSavedPicks();
+  });
+}
+
+function unsubscribeData() {
+  if (state.unsubOrders)    { state.unsubOrders();    state.unsubOrders = null; }
+  if (state.unsubSavedLocs) { state.unsubSavedLocs(); state.unsubSavedLocs = null; }
+}
+
+function updateHeaderUser(user) {
+  hideEl('headerAuthBtns');
+  showEl('headerUser');
+  document.getElementById('headerAvatar').textContent = (user.name || 'U').charAt(0).toUpperCase();
+  document.getElementById('headerName').textContent   = user.name;
+}
+
+async function doLogin() {
+  const email    = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl    = document.getElementById('loginError');
+  const btn      = document.getElementById('loginBtn');
+  if (!email || !password) { showFormError(errEl, 'Isi semua field terlebih dahulu'); return; }
+  errEl.classList.remove('show');
+  btn.textContent = 'Masuk...'; btn.disabled = true;
+  try {
+    if (FB) {
+      await signInWithEmailAndPassword(auth, email, password);
+      // onAuthStateChanged will call onUserLoggedIn — button stays disabled
+    } else {
+      // Demo fallback
+      const users = getDemoUsers();
+      const user  = users[email.toLowerCase()];
+      if (!user)                    throw { code: 'auth/user-not-found' };
+      if (user.password !== password) throw { code: 'auth/wrong-password' };
+      window._currentUser = { uid: user.uid, email: user.email, name: user.name, isGuest: false };
+      onUserLoggedIn(window._currentUser);
+    }
+  } catch(e) {
+    showFormError(errEl, friendlyAuthError(e.code));
+    btn.textContent = 'Masuk'; btn.disabled = false;
+  }
+}
+
+// =============================================
+// AUTH: REGISTER (FIXED)
+// =============================================
+async function doRegister() {
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const password = document.getElementById('regPassword').value;
+  const errEl = document.getElementById('registerError');
+  const btn = document.getElementById('registerBtn');
+
+  if (!name || !email || !password) {
+    showFormError(errEl, 'Please fill in all fields');
+    return;
+  }
+
+  if (password.length < 6) {
+    showFormError(errEl, 'Password must be at least 6 characters');
+    return;
+  }
+
+  errEl.classList.remove('show');
+  btn.textContent = 'Creating account...';
+  btn.disabled = true;
+
+  try {
+    if (!FB) throw new Error('Firebase not configured');
+
+    // 1. Create auth user
+    const userCred = await createUserWithEmailAndPassword(auth, email, password);
+    
+    // 2. Update profile immediately
+    await updateProfile(userCred.user, { displayName: name });
+
+    // 3. Save to Firestore
+    await setDoc(doc(db, 'customers', userCred.user.uid), {
+      uid: userCred.user.uid,
+      name: name,
+      email: email,
+      createdAt: serverTimestamp(),
+      totalRides: 0,
+      totalSpent: 0,
+      rating: 5.0,
+    });
+
+    console.log('✅ Register successful:', userCred.user.uid);
+
+    // 4. Langsung set currentUser tanpa menunggu onAuthStateChanged
+    currentUser = {
+      uid: userCred.user.uid,
+      email: email,
+      name: name,
+      isGuest: false,
+      totalRides: 0,
+      rating: 5.0,
+    };
+
+// Step 5: LANGSUNG PANGGIL onUserLoggedIn
+onUserLoggedIn(currentUser);
+
+  } catch(e) {
+    console.error('Register error:', e);
+    showFormError(errEl, friendlyAuthError(e.code));
+    btn.textContent = 'Create Account';
+    btn.disabled = false;
+  }
+}
+
+function doGuestMode() {
+  const guestUser = { uid: 'guest-' + Date.now(), email: '', name: 'Guest', isGuest: true };
+  window._currentUser = guestUser;
+  onUserLoggedIn(guestUser);
+}
+
+async function doSignOut() {
+  closeModal('userMenuModal');
+  await fbSignOut().catch(()=>{});
+  
+  window._currentUser = null;
+  onUserLoggedOut();
+  showToast('👋 Signed out successfully');
+}
+
+function showAuthGate(tab) {
+  showEl('authGate');
+  if (tab === 'register') switchAuthTab('register');
+}
+
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((el,i) => {
+    el.classList.toggle('active', (tab==='login'&&i===0)||(tab==='register'&&i===1));
+  });
+  document.getElementById('loginForm').style.display    = tab==='login'    ? 'block' : 'none';
+  document.getElementById('registerForm').style.display = tab==='register' ? 'block' : 'none';
+}
+
+function friendlyAuthError(code) {
+  return ({
+    'auth/user-not-found':       'No account found with this email.',
+    'auth/wrong-password':       'Incorrect password.',
+    'auth/invalid-credential':   'Incorrect email or password.',
+    'auth/email-already-in-use': 'Email already registered.',
+    'auth/invalid-email':        'Invalid email address.',
+    'auth/weak-password':        'Password is too weak.',
+    'auth/too-many-requests':    'Too many attempts. Try again later.',
+  })[code] || 'Something went wrong. Please try again.';
+}
+
+function showFormError(el, msg) { el.textContent = msg; el.classList.add('show'); }
+
+function showUserMenu() {
+  const user = window._currentUser;
+  if (!user) return;
+  document.getElementById('menuAvatar').textContent = (user.name||'U').charAt(0).toUpperCase();
+  document.getElementById('menuName').textContent   = user.name;
+  document.getElementById('menuEmail').textContent  = user.email || '';
+  document.getElementById('menuGuest').textContent  = user.isGuest ? '🔒 Guest Mode — data not saved' : '';
+  const done = state.orders.filter(o => o.status==='completed').length;
+  document.getElementById('menuStats').innerHTML = `
+    <div class="det-row"><span class="det-label">Total Rides</span><span class="det-val">${state.orders.length}</span></div>
+    <div class="det-row"><span class="det-label">Completed</span><span class="det-val" style="color:var(--accent)">${done}</span></div>
+    <div class="det-row"><span class="det-label">Saved Locations</span><span class="det-val">${state.savedLocs.length}</span></div>
+  `;
+  openModal('userMenuModal');
+}
+
+// =============================================
+//  BOOKING
+// =============================================
+function renderTiers() {
+  const list = document.getElementById('tierList');
+  const available = TIERS[state.vehicle][state.service] || TIERS[state.vehicle]['ride'];
+  if (!available.find(t => t.id === state.tier)) state.tier = available[0].id;
+
+  list.innerHTML = available.map(t => `
+    <div class="tier-card ${state.tier === t.id ? 'active' : ''}" onclick="selectTierById('${t.id}')">
+      <div class="tier-icon">${t.icon}</div>
+      <div class="tier-info">
+        <div class="tier-name">${t.name}</div>
+        <div class="tier-desc">${t.desc}</div>
+        <div class="platform-row">
+          ${t.platforms.map(p=>`<span class="pbadge ${p}">${p.charAt(0).toUpperCase()+p.slice(1)}</span>`).join('')}
+        </div>
+      </div>
+      <div class="tier-right">
+        <div class="tier-price">${formatPrice(t)}</div>
+        <div class="tier-eta">${t.eta}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function formatPrice(tier) {
+  if (state.estimatedKm) {
+    const est = tier.basePrice + tier.pricePerKm * state.estimatedKm;
+    return `Rp ${Math.round(est/1000)*1000 .toLocaleString('id-ID')}`;
+  }
+  // Show range when no km estimate
+  const lo = tier.basePrice;
+  const hi = tier.basePrice + tier.pricePerKm * 8;
+  return `Rp ${(lo/1000).toFixed(0)}.000–${(hi/1000).toFixed(0)}.000`;
+}
+
+function selectVehicle(v) {
+  state.vehicle = v;
+  document.getElementById('motoBtn').classList.toggle('active', v === 'motor');
+  document.getElementById('carBtn').classList.toggle('active', v === 'car');
+  document.querySelector('#svc-ride .svc-icon').textContent = v === 'motor' ? '🛵' : '🚗';
+  renderTiers();
+  updatePriceEstimate();
+}
+
+function selectService(s) {
+  state.service = s;
+  document.querySelectorAll('.svc-card').forEach(el => el.classList.remove('active'));
+  document.getElementById('svc-' + s).classList.add('active');
+  renderTiers();
+  updatePriceEstimate();
+}
+
+function selectTierById(id) {
+  state.tier = id;
+  renderTiers();
+  updatePriceEstimate();
+}
+
+function swapLocations() {
+  const p = document.getElementById('pickupInput');
+  const d = document.getElementById('destInput');
+  [p.value, d.value] = [d.value, p.value];
+  state.pickup = p.value; state.destination = d.value;
+  updatePriceEstimate();
+  showToast('📍 Locations swapped!');
+}
+
+function getTierData() {
+  const list = TIERS[state.vehicle][state.service] || TIERS[state.vehicle]['ride'];
+  return list.find(t => t.id === state.tier) || list[0];
+}
+
+// =============================================
+//  PRICE ESTIMATOR
+// =============================================
+let priceTimer = null;
+
+function updatePriceEstimate() {
+  const p = document.getElementById('pickupInput').value.trim();
+  const d = document.getElementById('destInput').value.trim();
+
+  if (!p || !d) {
+    state.estimatedKm = null;
+    document.getElementById('priceValue').textContent = '—';
+    document.getElementById('priceSub').textContent   = 'Enter locations first';
+    renderTiers();
+    return;
+  }
+
+  // Show calculating spinner
+  document.getElementById('priceValue').innerHTML = '<span class="spin">⟳</span>';
+  document.getElementById('priceSub').textContent = 'Calculating...';
+
+  clearTimeout(priceTimer);
+  priceTimer = setTimeout(() => {
+    // Simulate distance calculation (1.5 – 22 km based on string hash)
+    const hash = (p + d).split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+    const km   = 1.5 + (hash % 200) / 10;   // 1.5 – 21.5 km
+    state.estimatedKm = km;
+
+    const tier = getTierData();
+    const price = tier.basePrice + tier.pricePerKm * km;
+    const rounded = Math.round(price / 1000) * 1000;
+
+    document.getElementById('priceValue').textContent = `Rp ${rounded.toLocaleString('id-ID')}`;
+    document.getElementById('priceSub').textContent   = `~${km.toFixed(1)} km · ${tier.name}`;
+    renderTiers();
+  }, 900);
+}
+
+// =============================================
+//  SAVED LOCATIONS
+// =============================================
+function renderSavedLocs() {
+  const list = document.getElementById('savedLocList');
+  if (state.savedLocs.length === 0) {
+    list.innerHTML = `<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px 0;">No saved locations yet</div>`;
+    return;
+  }
+  list.innerHTML = state.savedLocs.map(loc => `
+    <div class="saved-loc-item">
+      <div class="saved-loc-icon">${loc.icon || '📌'}</div>
+      <div class="saved-loc-info">
+        <div class="saved-loc-name">${loc.label}</div>
+        <div class="saved-loc-addr">${loc.address}</div>
+      </div>
+      <div class="saved-loc-actions">
+        <button class="icon-btn" onclick="useSavedLoc('${escHtml(loc.address)}')" title="Use as pickup">↑</button>
+        <button class="icon-btn delete" onclick="removeSavedLoc('${loc.id}')" title="Delete">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderSavedPicks() {
+  const picks = document.getElementById('savedPicks');
+  if (state.savedLocs.length === 0) { picks.innerHTML = ''; return; }
+  picks.innerHTML = state.savedLocs.slice(0, 4).map(loc => `
+    <button class="saved-pick-btn" onclick="useSavedAsDestination('${escHtml(loc.address)}')" title="Set as destination">
+      ${loc.icon || '📌'} ${loc.label}
+    </button>
+  `).join('');
+}
+
+function useSavedLoc(addr) {
+  document.getElementById('pickupInput').value = addr;
+  state.pickup = addr;
+  updatePriceEstimate();
+  showToast(`📍 Pickup set to: ${addr}`);
+}
+
+function useSavedAsDestination(addr) {
+  document.getElementById('destInput').value = addr;
+  state.destination = addr;
+  updatePriceEstimate();
+  showToast(`🎯 Destination set to: ${addr}`);
+}
+
+async function removeSavedLoc(id) {
+  state.savedLocs = state.savedLocs.filter(l => l.id !== id);
+  renderSavedLocs(); renderSavedPicks();
+  await fbDeleteLoc(id).catch(()=>{});
+  showToast('🗑 Location removed');
+}
+
+function openAddSavedModal() {
+  state.savedLocType = '🏠';
+  document.getElementById('savedLocLabel').value = '';
+  document.getElementById('savedLocAddr').value  = '';
+  document.querySelectorAll('.loc-type-btn').forEach((b,i) => b.classList.toggle('active', i===0));
+  openModal('addSavedModal');
+}
+
+function selectLocType(btn, icon) {
+  state.savedLocType = icon;
+  document.querySelectorAll('.loc-type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+async function saveSavedLocation() {
+  const label   = document.getElementById('savedLocLabel').value.trim();
+  const address = document.getElementById('savedLocAddr').value.trim();
+  if (!label || !address) { showToast('⚠️ Please fill label & address'); return; }
+
+  const newLoc = { id: 'demo-' + Date.now(), icon: state.savedLocType, label, address };
+  state.savedLocs.push(newLoc);
+  renderSavedLocs(); renderSavedPicks();
+  closeModal('addSavedModal');
+  showToast('✅ Location saved!');
+
+  const savedId = await fbSaveLoc({ icon: state.savedLocType, label, address }).catch(()=>null);
+  if (savedId) { newLoc.id = savedId; }
+}
+
+// =============================================
+//  ORDER FLOW
+// =============================================
+function openConfirmModal() {
+  const pickup = document.getElementById('pickupInput').value.trim();
+  const dest   = document.getElementById('destInput').value.trim();
+  if (!pickup || !dest) { showToast('⚠️ Please enter pickup & destination'); return; }
+  state.pickup = pickup; state.destination = dest;
+
+  const tier  = getTierData();
+  const price = document.getElementById('priceValue').textContent;
+  const km    = state.estimatedKm ? state.estimatedKm.toFixed(1) + ' km' : '—';
+
+  document.getElementById('confirmDetails').innerHTML = `
+    <div class="det-row"><span class="det-label">📍 From</span><span class="det-val">${pickup}</span></div>
+    <div class="det-row"><span class="det-label">🎯 To</span><span class="det-val">${dest}</span></div>
+    <div class="det-row"><span class="det-label">🚗 Vehicle</span><span class="det-val">${state.vehicle === 'motor' ? 'Motor' : 'Car'}</span></div>
+    <div class="det-row"><span class="det-label">🎫 Tier</span><span class="det-val">${tier.name}</span></div>
+    <div class="det-row"><span class="det-label">📏 Distance</span><span class="det-val">${km}</span></div>
+    <div class="det-row"><span class="det-label">💰 Est. Fare</span><span class="det-val" style="color:var(--accent);font-weight:700;">${price}</span></div>
+  `;
+  openModal('confirmModal');
+}
+
+async function proceedBook() {
+  closeModal('confirmModal');
+
+  const user = window._currentUser;
+  const orderData = {
+    pickup:        state.pickup,
+    destination:   state.destination,
+    vehicle:       state.vehicle,
+    service:       state.service,
+    tier:          state.tier,
+    estimatedKm:   state.estimatedKm,
+    estimatedFare: document.getElementById('priceValue').textContent,
+    status:        'searching',
+    customerName:  user?.name  || 'Customer',
+    customerUid:   user?.uid   || 'guest',
+    customerEmail: user?.email || '',
+  };
+
+  // Tampilkan searching modal
+  document.getElementById('searchPickup').textContent = state.pickup;
+  document.getElementById('searchDest').textContent   = state.destination;
+  openModal('searchingModal');
+  addBotMessage(`🔍 Mencari driver untuk **${state.pickup}** → **${state.destination}**...`);
+
+  // Tambah ke local cache
+  const tempId = 'local-' + Date.now();
+  orderData.id = tempId;
+  addLocalOrder(orderData);
+
+  // Simpan ke Firestore / demo store
+  const orderId = await fbSaveOrder(orderData);
+  state.currentOrderId = orderId;
+
+  if (orderId !== tempId) {
+    state.orders = state.orders.map(o => o.id === tempId ? { ...o, id: orderId } : o);
+  }
+
+  // Listen real-time: tunggu driver accept dari Firestore
+  listenForDriverAccept(orderId);
+  startChat(orderId);
+
+  // Demo mode: simulasi driver accept setelah 4-8 detik
+  if (!FB || orderId.startsWith('demo')) {
+    const delay = 4000 + Math.random() * 4000;
+    state._demoAcceptTimer = setTimeout(() => {
+      const driverPool = MOCK_DRIVERS[state.vehicle] || MOCK_DRIVERS.motor;
+      const driver = driverPool[Math.floor(Math.random() * driverPool.length)];
+      simulateDriverAccept(orderId, driver);
+    }, delay);
+  }
+}
+
+// Tunggu driver accept secara real-time
+function listenForDriverAccept(orderId) {
+  if (!FB || orderId.startsWith('demo') || orderId.startsWith('local')) return;
+  if (unsubDriverStatus) unsubDriverStatus();
+
+  unsubDriverStatus = onSnapshot(doc(db, 'orders', orderId), (snap) => {
+    if (!snap.exists()) return;
+    const data = snap.data();
+    if (data.status === 'driver_found' && data.driverInfo) {
+      onDriverAccepted(orderId, data.driverInfo);
+    } else if (data.status === 'cancelled') {
+      closeModal('searchingModal');
+      addBotMessage('❌ Orderan dibatalkan.');
+      state.currentOrderId = null;
+    }
+  });
+}
+
+// Demo: simulasi driver accept
+async function simulateDriverAccept(orderId, driver) {
+  if (!document.getElementById('searchingModal').classList.contains('show')) return;
+  await fbUpdateOrder(orderId, 'driver_found', {
+    driverInfo: { name: driver.name, plate: driver.plate, vehicle: driver.vehicle, rating: driver.rating, avatar: driver.name.charAt(0) },
+    etaMinutes: driver.eta,
+  });
+  updateLocalOrder(orderId, 'driver_found', { driverName: driver.name });
+  onDriverAccepted(orderId, driver);
+}
+
+// Dipanggil saat driver sudah accept (dari Firestore atau demo)
+function onDriverAccepted(orderId, driverInfo) {
+  closeModal('searchingModal');
+
+  const driver = {
+    name:     driverInfo.name    || driverInfo.driverName || 'Driver',
+    plate:    driverInfo.plate   || '—',
+    vehicle:  driverInfo.vehicle || '—',
+    rating:   driverInfo.rating  || 4.9,
+    eta:      driverInfo.etaMinutes || driverInfo.eta || 5,
+    avatar:   driverInfo.avatar  || (driverInfo.name||'D').charAt(0),
+    platform: driverInfo.platform || 'gojek',
+    pColor:   '#00AA13',
+  };
+  state.currentDriver = driver;
+  showDriverModal(driver);
+  addBotMessage(`✅ Driver ditemukan! **${driver.name}** (${driver.vehicle}) sedang menuju lokasimu — **${driver.eta} menit** lagi.`);
+
+  // Now subscribe to status changes (en_route, completed, etc.)
+  listenDriverStatus(orderId);
+}
+
+// Batalkan pencarian
+async function cancelSearching() {
+  clearTimeout(state._demoAcceptTimer);
+  stopListenDriverStatus();
+  stopChat();
+  closeModal('searchingModal');
+  await fbUpdateOrder(state.currentOrderId, 'cancelled');
+  updateLocalOrder(state.currentOrderId, 'cancelled');
+  state.currentOrderId = null; state.currentDriver = null;
+  addBotMessage('❌ Pencarian driver dibatalkan. Butuh ride lain? Ketik saja! 🛵');
+  showToast('Pencarian dibatalkan');
+}
+
+function showDriverModal(driver) {
+  document.getElementById('driverName').textContent = driver.name;
+  document.getElementById('driverPlate').textContent = `${driver.plate} · ${driver.vehicle}`;
+  document.getElementById('driverRating').textContent = `⭐ ${driver.rating} · via `;
+  const pSpan = document.createElement('span');
+  pSpan.textContent = driver.platform.charAt(0).toUpperCase() + driver.platform.slice(1);
+  pSpan.style.color = driver.pColor;
+  document.getElementById('driverRating').appendChild(pSpan);
+  document.getElementById('etaNum').textContent = driver.eta;
+
+  const tier = getTierData();
+  document.getElementById('driverDetails').innerHTML = `
+    <div class="det-row"><span class="det-label">📍 From</span><span class="det-val">${state.pickup}</span></div>
+    <div class="det-row"><span class="det-label">🎯 To</span><span class="det-val">${state.destination}</span></div>
+    <div class="det-row"><span class="det-label">💰 Fare</span><span class="det-val" style="color:var(--accent)">${document.getElementById('priceValue').textContent}</span></div>
+  `;
+
+  // Reset progress
+  document.getElementById('progFill').style.width = '0%';
+  ['ps1','ps2','ps3'].forEach((id,i) => {
+    document.getElementById(id).className = 'p-step' + (i===0?' done':'');
+    document.getElementById(id).textContent = ['✓ Confirmed','En Route','Arrived'][i];
+  });
+
+  openModal('driverModal');
+
+  // Animate en-route
+  setTimeout(async () => {
+    document.getElementById('progFill').style.width = '50%';
+    document.getElementById('ps2').classList.add('done');
+    document.getElementById('ps2').textContent = '✓ En Route';
+    await fbUpdateOrder(state.currentOrderId, 'en_route');
+    updateLocalOrder(state.currentOrderId, 'en_route');
+  }, 1600);
+}
+
+async function completeRide() {
+  document.getElementById('progFill').style.width = '100%';
+  document.getElementById('ps3').classList.add('done');
+  document.getElementById('ps3').textContent = '✓ Arrived';
+  await fbUpdateOrder(state.currentOrderId, 'completed');
+  updateLocalOrder(state.currentOrderId, 'completed');
+  stopListenDriverStatus();
+  stopChat();
+  closeModal('driverModal');
+  openRatingModal();
+}
+
+async function cancelRide() {
+  await fbUpdateOrder(state.currentOrderId, 'cancelled');
+  updateLocalOrder(state.currentOrderId, 'cancelled');
+  stopListenDriverStatus();
+  stopChat();
+  closeModal('driverModal');
+  addBotMessage("Your ride has been cancelled. Need another ride? Just let me know! 🛵");
+  showToast('❌ Ride cancelled');
+  state.currentOrderId = null; state.currentDriver = null;
+}
+
+// =============================================
+//  RATING
+// =============================================
+function openRatingModal() {
+  state.userRating = 0;
+  document.getElementById('ratingDriverName').textContent = `How was your ride with ${state.currentDriver?.name}?`;
+  document.getElementById('reviewText').value = '';
+  document.querySelectorAll('.star-btn').forEach(b => b.classList.remove('lit'));
+  openModal('ratingModal');
+}
+
+function setRating(n) {
+  state.userRating = n;
+  document.querySelectorAll('.star-btn').forEach((b,i) => b.classList.toggle('lit', i < n));
+}
+
+async function submitRating() {
+  if (state.userRating === 0) { showToast('⭐ Please select a rating'); return; }
+  const review = document.getElementById('reviewText').value.trim();
+  const ratingData = { rating: state.userRating, review };
+  await fbUpdateOrder(state.currentOrderId, 'completed', ratingData);
+  updateLocalOrder(state.currentOrderId, 'completed', ratingData);
+  closeModal('ratingModal');
+  addBotMessage(`Thanks for rating **${state.currentDriver?.name}** ${state.userRating}⭐! Safe travels! 🛵`);
+  showToast('✅ Review submitted!');
+  state.currentOrderId = null; state.currentDriver = null;
+}
+
+// ─────────────────────────────────────────────
+//  LOCAL ORDER CACHE
+//  Menyimpan order secara lokal agar history
+//  selalu tampil, baik untuk guest maupun
+//  Firebase user (sebagai fallback real-time)
+// ─────────────────────────────────────────────
+function addLocalOrder(orderData) {
+  const newOrder = {
+    id: orderData.id || 'local-' + Date.now(),
+    ...orderData,
+    timestamp: { toDate: () => new Date() }, // mimic Firestore timestamp shape
+  };
+  // Tambah di depan (terbaru duluan)
+  state.orders = [newOrder, ...state.orders.filter(o => o.id !== newOrder.id)];
+  renderHistory();
+}
+
+function updateLocalOrder(orderId, status, extra = {}) {
+  state.orders = state.orders.map(o =>
+    o.id === orderId ? { ...o, status, ...extra } : o
+  );
+  renderHistory();
+}
+
+// =============================================
+//  ORDER HISTORY
+// =============================================
+function renderHistory() {
+  const list   = document.getElementById('historyList');
+  const empty  = document.getElementById('historyEmpty');
+  const orders = state.orders;
+
+  if (orders.length === 0) {
+    list.innerHTML = '';
+    empty.style.display = 'flex';
+    return;
+  }
+  empty.style.display = 'none';
+
+  list.innerHTML = orders.map(o => {
+    const date = o.timestamp?.toDate?.() ? o.timestamp.toDate().toLocaleDateString('id-ID', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : 'Just now';
+    const tier = (TIERS[o.vehicle]?.[o.service] || []).find(t => t.id === o.tier);
+    const statusLabel = { completed:'Completed', searching:'Searching', driver_found:'Driver Found', en_route:'En Route', cancelled:'Cancelled' }[o.status] || o.status;
+    const statusClass = { completed:'completed', cancelled:'cancelled' }[o.status] || 'searching';
+
+    return `
+      <div class="hist-card">
+        <div class="hist-top">
+          <div class="hist-route">${o.pickup || '—'} <span>→</span> ${o.destination || '—'}</div>
+          <span class="hist-status ${statusClass}">${statusLabel}</span>
+        </div>
+        <div class="hist-bottom">
+          <div>
+            <div class="hist-detail">${tier?.name || o.tier || '—'} · ${o.vehicle || '—'}</div>
+            ${o.rating ? `<div style="font-size:11px;color:var(--accent3);margin-top:2px;">⭐ ${o.rating}/5 ${o.review ? '· "'+o.review+'"' : ''}</div>` : ''}
+            <div class="hist-date" style="margin-top:3px;">${date}</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="hist-price">${o.estimatedFare || '—'}</div>
+            ${o.estimatedKm ? `<div style="font-size:10px;color:var(--muted);">~${parseFloat(o.estimatedKm).toFixed(1)} km</div>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// =============================================
+//  CHAT
+// =============================================
+function initGuestChat() {
+  addBotMessage("Hey! 👋 I'm your RideFlow assistant. Tell me where you want to go and I'll set up your booking instantly!", [
+    { label: '🏙 Sudirman → Grand Indonesia', text: 'Ride from Sudirman to Grand Indonesia' },
+    { label: '📦 Send Package', text: 'Send a package from Kemang to Senayan' },
+    { label: '🚗 Car from SCBD', text: 'Car ride from SCBD to Kuningan' },
+  ]);
+}
+
+function addBotMessage(text, chips) {
+  const msgs = document.getElementById('chatMessages');
+  const now  = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const html = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  const chipsHtml = chips ? `<div class="quick-suggestions">${chips.map(c=>`<div class="sug-chip" onclick="sendSuggestion('${c.text}')">${c.label}</div>`).join('')}</div>` : '';
+  msgs.innerHTML += `
+    <div class="msg bot">
+      <div class="msg-avatar bot">R</div>
+      <div>
+        <div class="msg-bubble">${html}</div>
+        <div class="msg-time">${now}</div>
+        ${chipsHtml}
+      </div>
+    </div>`;
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function addUserMessage(text) {
+  const msgs = document.getElementById('chatMessages');
+  const now  = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  msgs.innerHTML += `
+    <div class="msg user">
+      <div class="msg-avatar user">${(window._currentUser?.name||'U').charAt(0).toUpperCase()}</div>
+      <div>
+        <div class="msg-bubble">${escHtml(text)}</div>
+        <div class="msg-time" style="text-align:right;">${now}</div>
+      </div>
+    </div>`;
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// ─────────────────────────────────────────────
+//  NLP INTENT PARSER — Enhanced
+// ─────────────────────────────────────────────
+function parseIntent(raw) {
+  const t = raw.toLowerCase().trim();
+
+  // Special intents
+  if (/^(hi|hello|hey|halo|hai|hei|yo)\b/.test(t)) return { type:'greet' };
+  if (/(thank|thanks|terima kasih|makasih|thx|tq)/.test(t)) return { type:'thanks' };
+  if (/(history|riwayat|pesanan lalu|past ride|order saya|trip saya)/.test(t)) return { type:'history' };
+  if (/(save.*(location|tempat|lokasi)|simpan (tempat|lokasi))/.test(t)) return { type:'save_loc' };
+
+  let vehicle = null, service = 'ride', tier = null, pickup = null, destination = null;
+
+  // ── Vehicle detection ──
+  if (/\b(car|mobil|sedan|avanza|innova|xpander|xenia|taxi)\b/.test(t)) vehicle = 'car';
+  else if (/\b(motor|motorbike|bike|ojek|sepeda motor)\b/.test(t)) vehicle = 'motor';
+
+  // ── Service detection ──
+  if (/\b(kirim|deliver|paket|package|send|antar barang|cargo|titip)\b/.test(t)) service = 'delivery';
+  else if (/\b(food|makan|makanan|pesan makan|order food|gofood|grabfood|restoran|kuliner)\b/.test(t)) service = 'food';
+
+  // ── Tier detection ──
+  if (/\b(premium|plus)\b/.test(t)) tier = 'premium';
+  else if (/\b(priority|vip|executive|first class)\b/.test(t)) tier = 'priority';
+  else if (/\b(standard|reguler|biasa|ekonomi|economy)\b/.test(t)) tier = 'standard';
+
+  // ── Route extraction ──
+  let m;
+
+  // P1: "dari X ke/menuju Y" or "from X to Y"
+  m = t.match(/(?:from|dari)\s+(.+?)\s+(?:to|ke|menuju)\s+(.+?)(?:\s+(?:naik|pakai|pake|dengan|via|please|dong|ya))?$/i);
+  if (m) { pickup = cap(m[1].trim()); destination = cap(m[2].trim()); }
+
+  // P2: "X to Y" / "X ke Y" — bare, no from/dari
+  if (!pickup) {
+    m = t.match(/^(.+?)\s+(?:to|ke|menuju|→)\s+(.+?)(?:\s+(?:naik|pakai|dong|ya|please))?$/i);
+    if (m && m[1].trim().length > 1 && m[2].trim().length > 1) {
+      const fw = m[1].trim().split(/\s+/)[0];
+      if (!/(ride|order|book|pesan|kirim|mau|ingin|pengen|want|need)/.test(fw)) {
+        pickup = cap(m[1].trim()); destination = cap(m[2].trim());
+      }
+    }
+  }
+
+  // P3: "mau ke X" / "mau ke X dari Y" / "pengen ke X"
+  if (!pickup) {
+    m = t.match(/(?:mau|pengen|ingin|want|pergi|go)\s+(?:ke|to)\s+(.+?)(?:\s+dari\s+(.+?))?$/i);
+    if (m) {
+      destination = cap(m[1].trim());
+      if (m[2]) pickup = cap(m[2].trim());
+    }
+  }
+
+  // P4: strip command/vehicle words, then re-try X ke Y
+  if (!pickup) {
+    const stripped = t
+      .replace(/^(pesan|order|book|naik|mau naik|tolong|cari)\s+/i, '')
+      .replace(/\b(ojek|motor|mobil|car|motorbike)\b\s*/gi, '').trim();
+    m = stripped.match(/^(.+?)\s+(?:to|ke|menuju)\s+(.+)/i);
+    if (m && m[1].trim().length > 1 && m[2].trim().length > 1) {
+      pickup = cap(m[1].trim()); destination = cap(m[2].trim());
+    }
+  }
+
+  // Clean trailing filler words
+  const cleanFiller = s => s ? s.replace(/\s+(dong|ya|please|yuk|deh|nih|ok|oke|lah)\s*$/i, '').trim() : s;
+  pickup      = cleanFiller(pickup);
+  destination = cleanFiller(destination);
+
+  return { type: 'booking', vehicle, service, tier, pickup, destination };
+}
+
+// ─────────────────────────────────────────────
+//  INTENT HANDLER — Enhanced with richer responses
+// ─────────────────────────────────────────────
+function handleIntent(intent) {
+  const greets = [
+    "Hey! 👋 Ketik seperti ini: **\"Jakarta ke Bekasi\"** atau **\"Motor dari Sudirman ke Blok M\"** — saya langsung set up!",
+    "Halo! Mau ke mana hari ini? Ketik tujuanmu, contoh: **\"Kemang to SCBD\"** 🚀",
+    "Hai! Ceritain aja perjalananmu, misalnya: **\"dari Bandara ke Hotel Mulia\"** 🛵",
+  ];
+  const thanks = ["Sama-sama! Safe travels! 🛵", "Anytime! Butuh ride lagi, hubungi saya! ✌️"];
+  const done   = [
+    "Done! Cek panel booking di samping — tinggal klik **Find My Driver**! 👆",
+    "Siap! Form sudah diisi. Klik **Find My Driver** kalau sudah ready! 🚀",
+    "Got it! Cek detailnya dan konfirmasi ya! ✅",
+  ];
+
+  if (intent.type === 'greet')    return pick(greets);
+  if (intent.type === 'thanks')   return pick(thanks);
+  if (intent.type === 'history')  { switchChatTab('history'); return "Ini riwayat perjalananmu! 📋"; }
+  if (intent.type === 'save_loc') { openAddSavedModal(); return "Yuk simpan lokasimu! 📌"; }
+
+  let changes = 0;
+
+  // Apply vehicle
+  if (intent.vehicle) {
+    selectVehicle(intent.vehicle);
+    changes++;
+  }
+
+  // Apply service (ride/delivery/food)
+  if (intent.service && intent.service !== 'ride') {
+    selectService(intent.service);
+    changes++;
+  }
+
+  // Apply tier
+  if (intent.tier) {
+    state.tier = intent.tier;
+    renderTiers();
+    changes++;
+  }
+
+  // Apply pickup
+  if (intent.pickup) {
+    state.pickup = intent.pickup;
+    const el = document.getElementById('pickupInput');
+    if (el) el.value = intent.pickup;
+    changes++;
+  }
+
+  // Apply destination
+  if (intent.destination) {
+    state.destination = intent.destination;
+    const el = document.getElementById('destInput');
+    if (el) el.value = intent.destination;
+    changes++;
+  }
+
+  // Always refresh price if either location set
+  if (intent.pickup || intent.destination) {
+    // Force immediate update if both fields now have values
+    const p = document.getElementById('pickupInput')?.value.trim();
+    const d = document.getElementById('destInput')?.value.trim();
+    if (p && d) {
+      updatePriceEstimate();
+    }
+  }
+
+  if (changes > 0) {
+    const parts = [];
+    if (intent.vehicle === 'car')        parts.push('🚗 Mobil dipilih');
+    else if (intent.vehicle === 'motor') parts.push('🛵 Motor dipilih');
+    if (intent.service === 'delivery')   parts.push('📦 Delivery');
+    else if (intent.service === 'food')  parts.push('🍱 Food Order');
+    if (intent.pickup && intent.destination)
+      parts.push(`**${intent.pickup}** → **${intent.destination}**`);
+    else if (intent.pickup)
+      parts.push(`Pickup: **${intent.pickup}**`);
+    else if (intent.destination)
+      parts.push(`Tujuan: **${intent.destination}**`);
+
+    const summary = parts.length ? parts.join(' · ') + '. ' : '';
+    return summary + pick(done);
+  }
+
+  return `Hmm, kurang jelas nih. Coba ketik seperti ini:\n• **"Jakarta ke Bekasi"**\n• **"Motor dari Kemang ke Blok M"**\n• **"Kirim paket dari Sudirman ke Depok"** 📦\n• **"Mau ke Grand Indonesia dari SCBD"**`;
+}
+
+function sendSuggestion(text) { document.getElementById('chatInput').value = text; sendMessage(); }
+
+function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text  = input.value.trim();
+  if (!text) return;
+
+  addUserMessage(text);
+  input.value = ''; input.style.height = 'auto';
+
+  const typing = document.getElementById('typingIndicator');
+  typing.classList.add('show');
+
+  setTimeout(() => {
+    typing.classList.remove('show');
+    const intent   = parseIntent(text);
+    const response = handleIntent(intent);
+    addBotMessage(response);
+  }, 700 + Math.random() * 500);
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+function autoResize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+
+// =============================================
+//  UI TABS
+// =============================================
+function switchChatTab(tab) {
+  document.querySelectorAll('.chat-tab').forEach((el,i) => {
+    el.classList.toggle('active', (tab==='chat'&&i===0)||(tab==='history'&&i===1));
+  });
+  document.getElementById('chatView').classList.toggle('active',    tab === 'chat');
+  document.getElementById('historyView').classList.toggle('active', tab === 'history');
+  if (tab === 'history') renderHistory();
+}
+
+// =============================================
+//  HELPERS
+// =============================================
+function openModal(id)  { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+function showEl(id) { document.getElementById(id).style.display = ''; }
+function hideEl(id) { document.getElementById(id).style.display = 'none'; }
+function showAppShell() {
+  const shell = document.getElementById('appShell');
+  shell.style.display = 'block';
+  shell.classList.add('visible');
+}
+
+function showToast(msg, dur = 3000) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function cap(str)  { return str.split(' ').map(w => w.charAt(0).toUpperCase()+w.slice(1)).join(' '); }
+function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ─────────────────────────────────────────────
+//  REAL-TIME DRIVER STATUS LISTENER
+//  Mendengarkan perubahan status dari driver
+// ─────────────────────────────────────────────
+let unsubDriverStatus = null;
+
+function listenDriverStatus(orderId) {
+  if (!FB || !orderId || orderId.startsWith('demo') || orderId.startsWith('local')) return;
+  if (unsubDriverStatus) unsubDriverStatus();
+
+  unsubDriverStatus = onSnapshot(doc(db, 'orders', orderId), (snap) => {
+    if (!snap.exists()) return;
+    const data = snap.data();
+
+    // Update driver info if newly set
+    if (data.driverInfo) {
+      document.getElementById('driverName').textContent   = data.driverInfo.name   || '—';
+      document.getElementById('driverPlate').textContent  = `${data.driverInfo.plate || ''} · ${data.driverInfo.vehicle || ''}`;
+      document.getElementById('driverRating').textContent = `⭐ ${data.driverInfo.rating || '—'}`;
+      if (data.driverInfo.avatar) {
+        document.getElementById('driverAvatarCust').textContent = data.driverInfo.avatar;
+      }
+    }
+
+    // Update status bar + progress
+    const statusDot  = document.getElementById('driverStatusDot');
+    const statusText = document.getElementById('driverStatusText');
+    const progFill   = document.getElementById('progFill');
+    const ps2 = document.getElementById('ps2');
+    const ps3 = document.getElementById('ps3');
+
+    const statusMap = {
+      driver_found: {
+        dot: 'var(--accent3)', text: '🏍 Driver is heading to your pickup location...',
+        prog: '16%', ps2class: '', ps3class: ''
+      },
+      pickup_arrived: {
+        dot: 'var(--accent)', text: '📍 Driver has arrived at pickup point!',
+        prog: '33%', ps2class: 'done', ps3class: ''
+      },
+      en_route: {
+        dot: 'var(--accent2)', text: '🚗 You\'re on the way to the destination!',
+        prog: '66%', ps2class: 'done', ps3class: ''
+      },
+      completed: {
+        dot: 'var(--accent)', text: '✅ You have arrived! Trip completed.',
+        prog: '100%', ps2class: 'done', ps3class: 'done'
+      },
+      cancelled: {
+        dot: 'var(--danger)', text: '❌ Trip has been cancelled.',
+        prog: '0%', ps2class: '', ps3class: ''
+      },
+    };
+
+    const s = statusMap[data.status];
+    if (s && statusDot && statusText) {
+      statusDot.style.background = s.dot;
+      statusText.textContent     = s.text;
+      progFill.style.width       = s.prog;
+
+      if (s.ps2class === 'done') { ps2.classList.add('done'); ps2.textContent = '✓ En Route'; }
+      if (s.ps3class === 'done') { ps3.classList.add('done'); ps3.textContent = '✓ Arrived'; }
+    }
+
+    // ETA countdown update
+    if (data.etaMinutes) {
+      document.getElementById('etaNum').textContent = data.etaMinutes;
+    }
+  });
+}
+
+function stopListenDriverStatus() {
+  if (unsubDriverStatus) { unsubDriverStatus(); unsubDriverStatus = null; }
+}
+
+// ─────────────────────────────────────────────
+//  REAL-TIME CHAT — Customer ↔ Driver
+// ─────────────────────────────────────────────
+let unsubChat = null;
+let chatUnreadCount = 0;
+
+const QUICK_REPLIES_CUST = [
+  'Saya di depan gerbang 🏠',
+  'Saya pakai baju merah 👕',
+  'Berapa lama lagi? ⏱',
+  'Oke, ditunggu! 👍',
+];
+
+function switchDriverTab(tab) {
+  const tabInfo = document.getElementById('driverTabInfo');
+  const tabChat = document.getElementById('driverTabChat');
+  const btnInfo = document.getElementById('tabInfo');
+  const btnChat = document.getElementById('tabChat');
+
+  if (tab === 'info') {
+    tabInfo.style.display = 'block';
+    tabChat.style.display = 'none';
+    btnInfo.style.color = 'var(--accent)';
+    btnInfo.style.borderBottomColor = 'var(--accent)';
+    btnChat.style.color = 'var(--text2)';
+    btnChat.style.borderBottomColor = 'transparent';
+  } else {
+    tabInfo.style.display = 'none';
+    tabChat.style.display = 'flex';
+    tabChat.style.flexDirection = 'column';
+    btnChat.style.color = 'var(--accent)';
+    btnChat.style.borderBottomColor = 'var(--accent)';
+    btnInfo.style.color = 'var(--text2)';
+    btnInfo.style.borderBottomColor = 'transparent';
+    chatUnreadCount = 0;
+    const badge = document.getElementById('chatUnreadBadge');
+    if (badge) badge.style.display = 'none';
+
+    // Render quick replies
+    const qr = document.getElementById('chatQuickReplies');
+    if (qr && qr.children.length === 0) {
+      qr.innerHTML = QUICK_REPLIES_CUST.map(msg =>
+        `<button onclick="sendCustChatMsg('${msg}')"
+          style="padding:4px 10px;border-radius:14px;border:1px solid var(--border2);
+                 background:var(--surface2);color:var(--text2);font-size:11px;cursor:pointer;
+                 transition:all 0.2s;"
+          onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+          onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text2)'"
+        >${msg}</button>`
+      ).join('');
+    }
+  }
+}
+
+function startChat(orderId) {
+  if (!FB || !orderId || orderId.startsWith('demo') || orderId.startsWith('local')) {
+    // Demo mode: simulate driver reply
+    simulateDemoDriverReply();
+    return;
+  }
+  if (unsubChat) unsubChat();
+
+  const chatRef = collection(db, 'chats', orderId, 'messages');
+  const q = query(chatRef, orderBy('timestamp', 'asc'));
+
+  unsubChat = onSnapshot(q, (snap) => {
+    snap.docChanges().forEach(change => {
+      if (change.type === 'added') {
+        const msg = change.data();
+        appendChatMessage(msg.text, msg.sender, msg.timestamp?.toDate?.() || new Date());
+
+        // Show unread badge if chat tab not active
+        const chatTab = document.getElementById('driverTabChat');
+        if (msg.sender === 'driver' && chatTab && chatTab.style.display === 'none') {
+          chatUnreadCount++;
+          const badge = document.getElementById('chatUnreadBadge');
+          if (badge) { badge.textContent = chatUnreadCount; badge.style.display = 'inline'; }
+        }
+      }
+    });
+  });
+}
+
+function appendChatMessage(text, sender, time) {
+  const msgs = document.getElementById('custChatMessages');
+  if (!msgs) return;
+  const isCustomer = sender === 'customer';
+  const timeStr = time.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
+
+  const div = document.createElement('div');
+  div.style.cssText = `display:flex;flex-direction:column;align-items:${isCustomer ? 'flex-end' : 'flex-start'};`;
+  div.innerHTML = `
+    <div style="max-width:80%;padding:8px 12px;border-radius:${isCustomer ? '12px 12px 2px 12px' : '12px 12px 12px 2px'};
+      background:${isCustomer ? 'linear-gradient(135deg,var(--accent),var(--accent2))' : 'var(--surface3)'};
+      color:${isCustomer ? 'var(--bg)' : 'var(--text)'};font-size:12px;font-weight:500;">
+      ${isCustomer ? '' : '<span style="font-size:10px;color:var(--text2);display:block;margin-bottom:3px;">Driver</span>'}
+      ${text}
+    </div>
+    <span style="font-size:10px;color:var(--muted);margin-top:3px;">${timeStr}</span>
+  `;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+async function sendCustChat() {
+  const input = document.getElementById('custChatInput');
+  const text  = input?.value.trim();
+  if (!text) return;
+  input.value = '';
+  await sendCustChatMsg(text);
+}
+
+async function sendCustChatMsg(text) {
+  const orderId = state.currentOrderId;
+  appendChatMessage(text, 'customer', new Date());
+
+  if (FB && orderId && !orderId.startsWith('demo') && !orderId.startsWith('local')) {
+    try {
+      await addDoc(collection(db, 'chats', orderId, 'messages'), {
+        text, sender: 'customer',
+        senderName: window._currentUser?.name || 'Customer',
+        timestamp: serverTimestamp(),
+      });
+    } catch(e) { console.warn('Chat send failed:', e); }
+  } else {
+    // Demo: simulate driver reply after 2-4s
+    setTimeout(() => simulateDemoDriverReply(text), 2000 + Math.random() * 2000);
+  }
+}
+
+function simulateDemoDriverReply(custMsg) {
+  const replies = [
+    'Oke, saya segera menuju ke sana! 🏍',
+    'Siap, sudah dekat! 👍',
+    'Baik, saya pakai Google Maps ya 📍',
+    'Ok, ditunggu ya kak! 🙏',
+    'Saya sudah di depan, mohon keluar 🙏',
+  ];
+  const reply = replies[Math.floor(Math.random() * replies.length)];
+  appendChatMessage(reply, 'driver', new Date());
+
+  const chatTab = document.getElementById('driverTabChat');
+  if (chatTab && chatTab.style.display === 'none') {
+    chatUnreadCount++;
+    const badge = document.getElementById('chatUnreadBadge');
+    if (badge) { badge.textContent = chatUnreadCount; badge.style.display = 'inline'; }
+    showToast('💬 Driver: ' + reply);
+  }
+}
+
+function stopChat() {
+  if (unsubChat) { unsubChat(); unsubChat = null; }
+  chatUnreadCount = 0;
+}
+
+// ─────────────────────────────────────────────
+//  EXPOSE ALL FUNCTIONS TO WINDOW
+//  (module scope is isolated — must explicitly expose for onclick= attributes)
+// ─────────────────────────────────────────────
+Object.assign(window, {
+  // Auth
+  switchAuthTab, doLogin, doRegister, doGuestMode, doSignOut,
+  showAuthGate, showUserMenu,
+  // Booking
+  selectVehicle, selectService, selectTierById, swapLocations,
+  openConfirmModal, proceedBook, completeRide, cancelRide, cancelSearching,
+  // Rating
+  setRating, submitRating,
+  // Saved locations
+  openAddSavedModal, selectLocType, saveSavedLocation,
+  removeSavedLoc, useSavedLoc, useSavedAsDestination,
+  // Chat & UI
+  switchChatTab, sendMessage, sendSuggestion, handleKey, autoResize,
+  openModal, closeModal, addBotMessage,
+  // Driver chat & status
+  switchDriverTab, sendCustChat, sendCustChatMsg,
+});
+
+// ─────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────
+renderTiers();
+
+// Input listeners → price estimator
+document.getElementById('pickupInput').addEventListener('input', e => { state.pickup = e.target.value; updatePriceEstimate(); });
+document.getElementById('destInput').addEventListener('input',  e => { state.destination = e.target.value; updatePriceEstimate(); });
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('show'); });
+});
+
+// Enter key on auth inputs
+['loginEmail','loginPassword'].forEach(id => {
+  document.getElementById(id)?.addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+});
+['regName','regEmail','regPassword'].forEach(id => {
+  document.getElementById(id)?.addEventListener('keydown', e => { if(e.key==='Enter') doRegister(); });
+});
+</script>
+</body>
+</html>
