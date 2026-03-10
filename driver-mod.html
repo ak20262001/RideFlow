@@ -135,6 +135,12 @@ body {
 }
 .driver-name-sm { font-size: 12px; font-weight: 600; }
 .driver-plate-sm { font-family: var(--mono); font-size: 10px; color: var(--text2); margin-top: 1px; }
+.signout-btn {
+  margin-left: 4px; padding: 4px 10px; border-radius: 6px;
+  border: 1px solid var(--border2); background: none;
+  color: var(--text2); font-size: 11px; cursor: pointer; transition: all 0.2s;
+}
+.signout-btn:hover { color: var(--danger); border-color: var(--danger); }
 
 /* Notif bell */
 .notif-btn {
@@ -531,6 +537,12 @@ body {
   transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
 }
 .contact-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--adim); }
+.chat-unread-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--danger); color: #fff;
+  font-size: 9px; margin-left: 4px;
+}
 
 /* Chat panel */
 .chat-panel {
@@ -811,9 +823,9 @@ body {
     </div>
   </div>
   <div class="tb-right">
-    <div class="notif-btn" onclick="showToast('🔔 No new notifications')">
+    <div class="notif-btn" onclick="showPendingOrdersToast()">
       🔔
-      <div class="notif-badge" id="notifBadge">3</div>
+      <div class="notif-badge" id="notifBadge" style="display:none;">0</div>
     </div>
     <div class="driver-chip">
       <div class="driver-avatar" id="driverAvatarTop">A</div>
@@ -821,6 +833,7 @@ body {
         <div class="driver-name-sm" id="driverNameTop">Ahmad Fauzi</div>
         <div class="driver-plate-sm" id="driverPlateSm">B 4521 XYZ</div>
       </div>
+      <button onclick="dSignOut()" class="signout-btn">Out</button>
     </div>
   </div>
 </div>
@@ -1169,6 +1182,19 @@ function appendChatMessage(msg) {
 
   containerEl.appendChild(msgDiv);
   containerEl.scrollTop = containerEl.scrollHeight;
+
+  // Increment unread count if chat panel is hidden
+  if (!isOwn) {
+    const chatPanel = document.getElementById('driverChatPanel');
+    const chatPanelVisible = chatPanel && getComputedStyle(chatPanel).display !== 'none';
+    if (!chatPanelVisible) {
+      state.chatUnread++;
+      const chatBtn = document.getElementById('chatContactBtn');
+      if (chatBtn) {
+        chatBtn.innerHTML = `💬 Chat <span class="chat-unread-badge">${state.chatUnread}</span>`;
+      }
+    }
+  }
 }
 
 async function sendDriverChat() {
@@ -1694,7 +1720,16 @@ function renderFeed() {
     empty.style.display = 'flex'; feed.innerHTML = ''; feed.appendChild(empty); return;
   }
   empty.style.display = 'none';
-  feed.innerHTML = html + orders.filter(o => o.status === 'searching').map(renderOrderCard).join('');
+  const pendingOrders = orders.filter(o => o.status === 'searching');
+  feed.innerHTML = html + pendingOrders.map(renderOrderCard).join('');
+
+  // Update notification badge with pending order count
+  const badge = document.getElementById('notifBadge');
+  if (badge) {
+    const count = pendingOrders.length;
+    badge.textContent = count;
+    badge.style.display = count > 0 ? 'flex' : 'none';
+  }
 }
 
 function renderOrderCard(o) {
@@ -1831,7 +1866,7 @@ function renderCustomerDetail(o) {
           <div class="detail-section-title">Contact</div>
           <div class="contact-row">
             <button class="contact-btn" onclick="showToast('📞 Calling ${o.customer.name}...')">📞 Call</button>
-            <button class="contact-btn" onclick="showChatPanel()">💬 Chat</button>
+            <button class="contact-btn" id="chatContactBtn" onclick="showChatPanel()">💬 Chat</button>
           </div>
         </div>
       </div>
@@ -1858,6 +1893,10 @@ function showChatPanel() {
     detailsPanel.style.display = 'none';
     chatPanel.style.display = 'flex';
   }
+  // Clear unread badge
+  state.chatUnread = 0;
+  const chatBtn = document.getElementById('chatContactBtn');
+  if (chatBtn) chatBtn.innerHTML = '💬 Chat';
 }
 
 // ─────────────────────────────────────────────
@@ -2087,6 +2126,11 @@ function closeAlert() { document.getElementById('orderAlert').classList.remove('
 function openModal(id)  { document.getElementById(id).classList.add('show'); }
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
 
+function showPendingOrdersToast() {
+  const pending = state.localOrders.filter(o => o.status === 'searching').length;
+  showToast(pending > 0 ? `🔔 ${pending} pending order(s)` : '🔔 No new notifications');
+}
+
 function showToast(msg, dur = 3500) {
   const t = document.getElementById('toast');
   document.getElementById('toastMsg').textContent = msg;
@@ -2099,6 +2143,19 @@ function cap(str)  { return str.split(' ').map(w => w.charAt(0).toUpperCase()+w.
 // ─────────────────────────────────────────────
 //  INIT
 // ─────────────────────────────────────────────
+
+// Expose module functions to global scope for inline HTML event handlers
+Object.assign(window, {
+  toggleOnline, setFilter,
+  selectOrder, openAcceptModal, declineOrder,
+  confirmAccept, openCompleteModal, confirmComplete,
+  openCancelRideModal, confirmCancelRide,
+  showChatPanel, sendDriverChat, sendDriverChatQuickReply,
+  closeAlert, openModal, closeModal, showToast, showPendingOrdersToast,
+  dLogin, dRegister, dDemoMode, dSwitchTab, dSignOut,
+  state,
+});
+
 updateStats();
 renderRecentActivity();
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
