@@ -135,6 +135,12 @@ body {
 }
 .driver-name-sm { font-size: 12px; font-weight: 600; }
 .driver-plate-sm { font-family: var(--mono); font-size: 10px; color: var(--text2); margin-top: 1px; }
+.signout-btn {
+  margin-left: 4px; padding: 4px 10px; border-radius: 6px;
+  border: 1px solid var(--border2); background: none;
+  color: var(--text2); font-size: 11px; cursor: pointer; transition: all 0.2s;
+}
+.signout-btn:hover { color: var(--danger); border-color: var(--danger); }
 
 /* Notif bell */
 .notif-btn {
@@ -531,6 +537,12 @@ body {
   transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
 }
 .contact-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--adim); }
+.chat-unread-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--danger); color: #fff;
+  font-size: 9px; margin-left: 4px;
+}
 
 /* Chat panel */
 .chat-panel {
@@ -821,7 +833,7 @@ body {
         <div class="driver-name-sm" id="driverNameTop">Ahmad Fauzi</div>
         <div class="driver-plate-sm" id="driverPlateSm">B 4521 XYZ</div>
       </div>
-      <button onclick="dSignOut()" style="margin-left:8px;padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:none;color:var(--text2);font-size:11px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.color='var(--danger)';this.style.borderColor='var(--danger)'" onmouseout="this.style.color='var(--text2)';this.style.borderColor='var(--border2)'">Out</button>
+      <button onclick="dSignOut()" class="signout-btn">Out</button>
     </div>
   </div>
 </div>
@@ -1174,11 +1186,12 @@ function appendChatMessage(msg) {
   // Increment unread count if chat panel is hidden
   if (!isOwn) {
     const chatPanel = document.getElementById('driverChatPanel');
-    if (chatPanel && chatPanel.style.display === 'none') {
+    const chatPanelVisible = chatPanel && getComputedStyle(chatPanel).display !== 'none';
+    if (!chatPanelVisible) {
       state.chatUnread++;
       const chatBtn = document.getElementById('chatContactBtn');
       if (chatBtn) {
-        chatBtn.innerHTML = `💬 Chat <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--danger);color:#fff;font-size:9px;margin-left:4px;">${state.chatUnread}</span>`;
+        chatBtn.innerHTML = `💬 Chat <span class="chat-unread-badge">${state.chatUnread}</span>`;
       }
     }
   }
